@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,11 +11,13 @@ public class NodeInfo
 {
     public string Address { get; set; }
     public int Port { get; set; }
+    public TcpClient Connection { get; set; }
 
-    public NodeInfo(string address, int port)
+    public NodeInfo(string address, int port, TcpClient client)
     {
         Address = address;
         Port = port;
+        Connection = client;
     }
 
     public override bool Equals(object obj)

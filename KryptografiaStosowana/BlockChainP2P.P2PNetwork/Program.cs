@@ -54,6 +54,11 @@ namespace P2PNode
                 peerNetwork.ConnectToPeer(nodeInfo);
             }
 
+            while (true)
+            {
+                await Task.Delay(1000); // Czekaj 1 sekundę przed kolejną iteracją
+            }
+
         }
 
         // Helper method to try starting the node and check if the port is available

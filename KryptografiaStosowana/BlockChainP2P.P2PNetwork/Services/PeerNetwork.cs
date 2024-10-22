@@ -29,7 +29,7 @@ namespace BlockChainP2P.P2PNetwork.Services
 
         public void StartNode(int port)
         {
-            _listener = new TcpListener(IPAddress.Any, port);
+            _listener = new TcpListener(IPAddress.Parse("127.0.0.1"), port);
             _listener.Start();
 
             Task.Run(async () =>
@@ -134,13 +134,13 @@ namespace BlockChainP2P.P2PNetwork.Services
         {
             foreach (var peer in _connectedPeers)
             {
-                if (peer.Address != newNode.Address || peer.Port != newNode.Port)
-                {
+                //if (peer.Address != newNode.Address || peer.Port != newNode.Port)
+                //{
                     Console.WriteLine($"Notifying peer {peer.Address}:{peer.Port} about new node {newNode.Address}:{newNode.Port}");
                     var message = new Message("NewNode", $"{newNode.Address}:{newNode.Port}");
                     
                     SendMessageToPeer(peer, message);
-                }
+                //}
             }
         }
 
