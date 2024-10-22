@@ -17,6 +17,7 @@ namespace BlockChainP2P.P2PNetwork.Services
         private TcpListener _listener;
         private readonly List<NodeInfo> _knownPeers;
 
+        private IPAddress _defaultIP => IPAddress.Parse("127.0.0.1");
 
         public event Action<Message> OnMessageReceived;
 
@@ -29,7 +30,7 @@ namespace BlockChainP2P.P2PNetwork.Services
 
         public void StartNode(int port)
         {
-            _listener = new TcpListener(IPAddress.Parse("127.0.0.1"), port);
+            _listener = new TcpListener(_defaultIP, port);
             _listener.Start();
 
             Task.Run(async () =>
@@ -50,6 +51,7 @@ namespace BlockChainP2P.P2PNetwork.Services
                 _knownPeers.Add(nodeInfo);
 
                 var client = new TcpClient(nodeInfo.Address, nodeInfo.Port);
+                nodeInfo.Connection = client;
                 _connectedPeers.Add(nodeInfo);
 
                 NotifyPeersAboutNewNode(nodeInfo);
@@ -126,8 +128,6 @@ namespace BlockChainP2P.P2PNetwork.Services
             {
                 Console.WriteLine($"Connection to peer lost while trying to decode his message. {ex.Message}");
             }
-            // If we exit the while loop, the client has disconnected
-            Reconnect(client); // Call to reconnect
         }
 
         private void NotifyPeersAboutNewNode(NodeInfo newNode)
@@ -146,14 +146,19 @@ namespace BlockChainP2P.P2PNetwork.Services
 
         private async void Reconnect(TcpClient client)
         {
-            NodeInfo nodeInfo = new NodeInfo("", 5001); /* Retrieve NodeInfo associated with the client */;
+            var motherServer = _knownPeers.FirstOrDefault();
+            if(motherServer == null)
+            {
+                throw new ArgumentNullException("No mother peer defined.");
+            }
 
             while (true)
             {
                 try
                 {
                     // Attempt to reconnect
-                    var newClient = new TcpClient(nodeInfo.Address, nodeInfo.Port);
+                    var newClient = new TcpClient(motherServer.Address, motherServer.Port);
+                    NodeInfo nodeInfo = new NodeInfo(motherServer.Address, motherServer.Port, newClient);
                     _connectedPeers.Add(nodeInfo);
                     HandleClient(newClient); // Handle the new connection
                     break; // Exit the loop if successful

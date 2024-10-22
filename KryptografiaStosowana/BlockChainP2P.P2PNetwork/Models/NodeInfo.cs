@@ -11,9 +11,9 @@ public class NodeInfo
 {
     public string Address { get; set; }
     public int Port { get; set; }
-    public TcpClient Connection { get; set; }
+    public TcpClient? Connection { get; set; }
 
-    public NodeInfo(string address, int port, TcpClient client)
+    public NodeInfo(string address, int port, TcpClient client = null)
     {
         Address = address;
         Port = port;

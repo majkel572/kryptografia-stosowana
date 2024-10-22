@@ -31,9 +31,9 @@ namespace P2PNode
             Console.WriteLine("Starting the node...");
 
             // Change this line if You implement address IP handling with port - currently it strips port from ip:port arg
-            int port = args.Length > 0 && args[0].Contains(":") ? int.Parse(args[0].Split(':')[1]) : 5000;  
+            int port = args.Length > 0 && args[0].Contains(":") ? int.Parse(args[0].Split(':')[1]) : 5000;
 
-            string localIpAddress = GetLocalIPAddress();
+            string localIpAddress = "127.0.0.1";
 
             if (localIpAddress == null)
             {
@@ -69,7 +69,7 @@ namespace P2PNode
                 peerNetwork.StartNode(port);
 
                 // Get the local machine's IP address (IPv4) and confirm the node is running
-                string localIpAddress = GetLocalIPAddress();
+                string localIpAddress = "127.0.0.1"; // GetLocalIPAddress();
                 Console.WriteLine($"Node is successfully running at {localIpAddress}:{port}");
                 return true;
             }

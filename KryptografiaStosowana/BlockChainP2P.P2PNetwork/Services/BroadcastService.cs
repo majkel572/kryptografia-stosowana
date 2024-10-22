@@ -20,10 +20,10 @@ public class BroadcastService : IBroadcastService
         {
             while (true)
             {
-                var message = "NodeInfo"; // Customize this message to include node details
+                var message = "NodeInfo"; 
                 var data = Encoding.UTF8.GetBytes(message);
                 await _udpClient.SendAsync(data, data.Length, BroadcastAddress, port);
-                await Task.Delay(1000); // Broadcast every second
+                await Task.Delay(1000);
             }
         });
     }

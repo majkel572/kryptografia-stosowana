@@ -11,8 +11,6 @@ namespace BlockChainP2P.P2PNetwork.Services
     {
         public void DiscoverPeers()
         {
-            // Implement peer discovery logic here
-            // This could include broadcasting presence on the network or pinging known nodes
             Console.WriteLine("Discovering peers...");
         }
     }

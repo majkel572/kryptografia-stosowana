@@ -12,8 +12,6 @@ internal class MessageHandlerService : IMessageHandlerService
 {
     public void HandleMessage(Message message)
     {
-        // Implement message handling logic here
-        // For example, log the message or process commands
         Console.WriteLine($"Received message: {message.Command} - {message.Payload}");
     }
 }
