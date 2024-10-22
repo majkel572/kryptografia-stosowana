@@ -13,8 +13,10 @@ namespace BlockChainP2P.P2PNetwork.Interfaces
 
         void ConnectToPeer(NodeInfo nodeInfo);
 
-        void SendMessage(Message message);
+        void SendBCastMessage(Message message);
 
         event Action<Message> OnMessageReceived;
+        void SendMessageToPeer(NodeInfo peer, Message message);
+
     }
 }

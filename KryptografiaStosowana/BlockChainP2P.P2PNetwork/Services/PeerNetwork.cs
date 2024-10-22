@@ -10,11 +10,13 @@ using BlockChainP2P.P2PNetwork.Interfaces;
 
 namespace BlockChainP2P.P2PNetwork.Services
 {
-    internal class PeerNetwork
+    internal class PeerNetwork : IPeerNetwork
     {
         private readonly List<NodeInfo> _connectedPeers;
         private readonly IMessageHandlerService _messageHandlerService;
         private TcpListener _listener;
+        private readonly List<NodeInfo> _knownPeers;
+
 
         public event Action<Message> OnMessageReceived;
 
@@ -22,6 +24,7 @@ namespace BlockChainP2P.P2PNetwork.Services
         {
             _connectedPeers = new List<NodeInfo>();
             _messageHandlerService = messageHandlerService;
+            _knownPeers = new List<NodeInfo>(); 
         }
 
         public void StartNode(int port)
@@ -34,49 +37,147 @@ namespace BlockChainP2P.P2PNetwork.Services
                 while (true)
                 {
                     var client = await _listener.AcceptTcpClientAsync();
-                    HandleClient(client);
+                    Task.Run(async () => HandleClient(client));
                 }
             });
         }
 
         public void ConnectToPeer(NodeInfo nodeInfo)
         {
-            var client = new TcpClient(nodeInfo.Address, nodeInfo.Port);
-            _connectedPeers.Add(nodeInfo);
-            // Handle sending and receiving messages with the connected peer
+            if (!_knownPeers.Any(p => p.Address == nodeInfo.Address && p.Port == nodeInfo.Port))
+            {
+                Console.WriteLine($"Connecting to new peer: {nodeInfo.Address}:{nodeInfo.Port}");
+                _knownPeers.Add(nodeInfo);
+
+                var client = new TcpClient(nodeInfo.Address, nodeInfo.Port);
+                _connectedPeers.Add(nodeInfo);
+
+                NotifyPeersAboutNewNode(nodeInfo);
+            }
         }
 
-        public void SendMessage(Message message)
+        public void SendBCastMessage(Message message)
         {
             foreach (var peer in _connectedPeers)
             {
-                // Send the message to each connected peer
+                SendMessageToPeer(peer, message);
+            }
+        }
+
+        public void SendMessageToPeer(NodeInfo peer, Message message)
+        {
+            try
+            {
+                using (var client = new TcpClient(peer.Address, peer.Port))
+                {
+                    var stream = client.GetStream();
+
+                    var messageBytes = Encoding.UTF8.GetBytes($"{message.Command}|{message.Payload}");
+
+                    stream.Write(messageBytes, 0, messageBytes.Length);
+                    Console.WriteLine($"Sent message to {peer.Address}:{peer.Port}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send message to {peer.Address}:{peer.Port}: {ex.Message}");
             }
         }
 
         private async void HandleClient(TcpClient client)
         {
-            using (client)
-            {
-                var stream = client.GetStream();
-                byte[] buffer = new byte[1024];
-                int bytesRead;
+            //using (client)
+            //{
+            //    NetworkStream stream = client.GetStream();
+            //    byte[] buffer = new byte[1024];
+            //    int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
 
-                while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) != 0)
+            //    string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+            //    Console.WriteLine($"Otrzymano wiadomość: {message}");
+
+            //    byte[] response = Encoding.UTF8.GetBytes("Wiadomość odebrana.");
+            //    await stream.WriteAsync(response, 0, response.Length);
+            //}
+            try
+            {
+                using (client)
                 {
-                    var messageString = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    var message = ParseMessage(messageString); // Implement this method
-                    _messageHandlerService.HandleMessage(message);
-                    OnMessageReceived?.Invoke(message);
+                    var stream = client.GetStream();
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+
+                    while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) != 0)
+                    {
+                        var messageString = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                        var message = ParseMessage(messageString);
+
+                        if (message.Command == "NewNode")
+                        {
+                            var nodeParts = message.Payload.Split(':');
+                            var newNodeInfo = new NodeInfo(nodeParts[0], int.Parse(nodeParts[1]));
+                            ConnectToPeer(newNodeInfo);
+                        }
+
+                        _messageHandlerService.HandleMessage(message);
+                        OnMessageReceived?.Invoke(message);
+                    }
+                }
+            } catch(Exception ex)
+            {
+                Console.WriteLine($"Connection to peer lost while trying to decode his message. {ex.Message}");
+            }
+            // If we exit the while loop, the client has disconnected
+            Reconnect(client); // Call to reconnect
+        }
+
+        private void NotifyPeersAboutNewNode(NodeInfo newNode)
+        {
+            foreach (var peer in _connectedPeers)
+            {
+                if (peer.Address != newNode.Address || peer.Port != newNode.Port)
+                {
+                    Console.WriteLine($"Notifying peer {peer.Address}:{peer.Port} about new node {newNode.Address}:{newNode.Port}");
+                    var message = new Message("NewNode", $"{newNode.Address}:{newNode.Port}");
+                    
+                    SendMessageToPeer(peer, message);
+                }
+            }
+        }
+
+        private async void Reconnect(TcpClient client)
+        {
+            NodeInfo nodeInfo = new NodeInfo("", 5001); /* Retrieve NodeInfo associated with the client */;
+
+            while (true)
+            {
+                try
+                {
+                    // Attempt to reconnect
+                    var newClient = new TcpClient(nodeInfo.Address, nodeInfo.Port);
+                    _connectedPeers.Add(nodeInfo);
+                    HandleClient(newClient); // Handle the new connection
+                    break; // Exit the loop if successful
+                }
+                catch (SocketException)
+                {
+                    await Task.Delay(5000); // Wait before retrying
                 }
             }
         }
 
         private Message ParseMessage(string messageString)
         {
-            // Parse the incoming message string to create a Message object
-            // This will depend on your specific message format
-            return new Message("Command", messageString);
+            var parts = messageString.Split('|');
+
+            if (parts.Length == 2)
+            {
+                var command = parts[0].Trim();
+                var payload = parts[1].Trim();
+                return new Message(command, payload);
+            }
+
+            Console.WriteLine($"Invalid message format: {messageString}");
+            return null; 
         }
     }
 }
