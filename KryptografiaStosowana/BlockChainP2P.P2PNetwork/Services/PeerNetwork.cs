@@ -48,13 +48,30 @@ namespace BlockChainP2P.P2PNetwork.Services
             if (!_knownPeers.Any(p => p.Address == nodeInfo.Address && p.Port == nodeInfo.Port))
             {
                 Console.WriteLine($"Connecting to new peer: {nodeInfo.Address}:{nodeInfo.Port}");
-                _knownPeers.Add(nodeInfo);
+                if(!_knownPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
+                {
+                    _knownPeers.Add(nodeInfo);
+                }
 
                 var client = new TcpClient(nodeInfo.Address, nodeInfo.Port);
                 nodeInfo.Connection = client;
+                if (_knownPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
+                {
+                    var toRemove = _knownPeers.FirstOrDefault(x => x.Address == nodeInfo.Address && x.Port == nodeInfo.Port);
+                    try
+                    {
+                        toRemove.Connection.Close();
+                    }
+                    catch (Exception e) { }
+                    _knownPeers.Remove(toRemove);
+                }
+
                 _connectedPeers.Add(nodeInfo);
 
-                NotifyPeersAboutNewNode(nodeInfo);
+                if (!_knownPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
+                {
+                    NotifyPeersAboutNewNode(nodeInfo);
+                }
             }
         }
 
