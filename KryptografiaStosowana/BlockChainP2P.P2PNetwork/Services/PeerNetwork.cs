@@ -16,6 +16,7 @@ namespace BlockChainP2P.P2PNetwork.Services
         private readonly IMessageHandlerService _messageHandlerService;
         private TcpListener _listener;
         private readonly List<NodeInfo> _knownPeers;
+        private NodeInfo _thisNodeInfo;
 
         private IPAddress _defaultIP => IPAddress.Parse("127.0.0.1");
 
@@ -25,12 +26,14 @@ namespace BlockChainP2P.P2PNetwork.Services
         {
             _connectedPeers = new List<NodeInfo>();
             _messageHandlerService = messageHandlerService;
-            _knownPeers = new List<NodeInfo>(); 
+            _knownPeers = new List<NodeInfo>();
         }
 
         public void StartNode(int port)
         {
             _listener = new TcpListener(_defaultIP, port);
+            _thisNodeInfo = new NodeInfo("127.0.0.1", port);
+
             _listener.Start();
 
             Task.Run(async () =>
@@ -50,27 +53,37 @@ namespace BlockChainP2P.P2PNetwork.Services
                 Console.WriteLine($"Connecting to new peer: {nodeInfo.Address}:{nodeInfo.Port}");
                 if(!_knownPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
                 {
-                    _knownPeers.Add(nodeInfo);
+                    if(!(nodeInfo.Address == _thisNodeInfo.Address && nodeInfo.Port == _thisNodeInfo.Port))
+                    {
+                        _knownPeers.Add(nodeInfo);
+                    }
                 }
 
                 var client = new TcpClient(nodeInfo.Address, nodeInfo.Port);
-                nodeInfo.Connection = client;
-                if (_knownPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
+                var nodeInfoWithConnection = new NodeInfo(nodeInfo.Address, nodeInfo.Port, client);
+
+                if (_connectedPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
                 {
-                    var toRemove = _knownPeers.FirstOrDefault(x => x.Address == nodeInfo.Address && x.Port == nodeInfo.Port);
+                    var toRemove = _connectedPeers.FirstOrDefault(x => x.Address == nodeInfo.Address && x.Port == nodeInfo.Port);
                     try
                     {
                         toRemove.Connection.Close();
                     }
                     catch (Exception e) { }
-                    _knownPeers.Remove(toRemove);
+                    _connectedPeers.Remove(toRemove);
                 }
 
-                _connectedPeers.Add(nodeInfo);
-
-                if (!_knownPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
+                if (!(nodeInfo.Address == _thisNodeInfo.Address && nodeInfo.Port == _thisNodeInfo.Port))
                 {
-                    NotifyPeersAboutNewNode(nodeInfo);
+                    _connectedPeers.Add(nodeInfo);
+                }
+
+                if (_knownPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
+                {
+                    if (!(nodeInfo.Address == _thisNodeInfo.Address && nodeInfo.Port == _thisNodeInfo.Port))
+                    {
+                        NotifyPeersAboutNewNode(nodeInfo);
+                    }
                 }
             }
         }

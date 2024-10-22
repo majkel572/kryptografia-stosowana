@@ -15,6 +15,7 @@ namespace P2PNode
         static async Task Main(string[] args)
         {
             var cancellationTokenSource = new CancellationTokenSource();
+            string localIpAddress = "127.0.0.1";
 
             var host = Host.CreateDefaultBuilder(args)
                 .ConfigureServices((context, services) =>
@@ -33,7 +34,6 @@ namespace P2PNode
             // Change this line if You implement address IP handling with port - currently it strips port from ip:port arg
             int port = args.Length > 0 && args[0].Contains(":") ? int.Parse(args[0].Split(':')[1]) : 5000;
 
-            string localIpAddress = "127.0.0.1";
 
             if (localIpAddress == null)
             {
