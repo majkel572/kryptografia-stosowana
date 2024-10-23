@@ -1,0 +1,6 @@
+@BlockChainP2P.P2PNetwork.Api_HostAddress = http://localhost:5048
+
+GET {{BlockChainP2P.P2PNetwork.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
