@@ -16,6 +16,10 @@ namespace BlockChainP2P.P2PNetwork.Services
         private readonly IMessageHandlerService _messageHandlerService;
         private TcpListener _listener;
         private readonly List<NodeInfo> _knownPeers;
+        private readonly object _peerLock = new object(); 
+        private readonly object _messageLock = new object(); 
+
+        private NodeInfo _thisNodeInfo;
 
         private IPAddress _defaultIP => IPAddress.Parse("127.0.0.1");
 
@@ -25,12 +29,14 @@ namespace BlockChainP2P.P2PNetwork.Services
         {
             _connectedPeers = new List<NodeInfo>();
             _messageHandlerService = messageHandlerService;
-            _knownPeers = new List<NodeInfo>(); 
+            _knownPeers = new List<NodeInfo>();
         }
 
         public void StartNode(int port)
         {
             _listener = new TcpListener(_defaultIP, port);
+            _thisNodeInfo = new NodeInfo("127.0.0.1", port);
+
             _listener.Start();
 
             Task.Run(async () =>
@@ -45,44 +51,80 @@ namespace BlockChainP2P.P2PNetwork.Services
 
         public void ConnectToPeer(NodeInfo nodeInfo)
         {
-            if (!_knownPeers.Any(p => p.Address == nodeInfo.Address && p.Port == nodeInfo.Port))
+            lock (_peerLock)
             {
-                Console.WriteLine($"Connecting to new peer: {nodeInfo.Address}:{nodeInfo.Port}");
-                _knownPeers.Add(nodeInfo);
+                if (!_knownPeers.Any(p => p.Address == nodeInfo.Address && p.Port == nodeInfo.Port))
+                {
+                    Console.WriteLine($"Connecting to new peer: {nodeInfo.Address}:{nodeInfo.Port}");
+                    if (!_knownPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
+                    {
+                        if (!(nodeInfo.Address == _thisNodeInfo.Address && nodeInfo.Port == _thisNodeInfo.Port))
+                        {
+                            _knownPeers.Add(nodeInfo);
+                        }
+                    }
 
-                var client = new TcpClient(nodeInfo.Address, nodeInfo.Port);
-                nodeInfo.Connection = client;
-                _connectedPeers.Add(nodeInfo);
+                    var client = new TcpClient(nodeInfo.Address, nodeInfo.Port);
+                    var nodeInfoWithConnection = new NodeInfo(nodeInfo.Address, nodeInfo.Port, client);
 
-                NotifyPeersAboutNewNode(nodeInfo);
+                    if (_connectedPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
+                    {
+                        var toRemove = _connectedPeers.FirstOrDefault(x => x.Address == nodeInfo.Address && x.Port == nodeInfo.Port);
+                        try
+                        {
+                            toRemove.Connection.Close();
+                        }
+                        catch (Exception e) { }
+                        _connectedPeers.Remove(toRemove);
+                    }
+
+                    if (!(nodeInfo.Address == _thisNodeInfo.Address && nodeInfo.Port == _thisNodeInfo.Port))
+                    {
+                        _connectedPeers.Add(nodeInfo);
+                    }
+
+                    if (_knownPeers.Any(x => x.Port == nodeInfo.Port && x.Address == nodeInfo.Address))
+                    {
+                        if (!(nodeInfo.Address == _thisNodeInfo.Address && nodeInfo.Port == _thisNodeInfo.Port))
+                        {
+                            NotifyPeersAboutNewNode(nodeInfo);
+                        }
+                    }
+                }
             }
         }
 
         public void SendBCastMessage(Message message)
         {
-            foreach (var peer in _connectedPeers)
+            lock (_messageLock) // Lock when sending broadcast messages
             {
-                SendMessageToPeer(peer, message);
+                foreach (var peer in _connectedPeers)
+                {
+                    SendMessageToPeer(peer, message);
+                }
             }
         }
 
         public void SendMessageToPeer(NodeInfo peer, Message message)
         {
-            try
+            lock (_messageLock)
             {
-                using (var client = new TcpClient(peer.Address, peer.Port))
+                try
                 {
-                    var stream = client.GetStream();
+                    using (var client = new TcpClient(peer.Address, peer.Port))
+                    {
+                        var stream = client.GetStream();
 
-                    var messageBytes = Encoding.UTF8.GetBytes($"{message.Command}|{message.Payload}");
+                        var messageBytes = Encoding.UTF8.GetBytes($"{message.Command}|{message.Payload}");
 
-                    stream.Write(messageBytes, 0, messageBytes.Length);
-                    Console.WriteLine($"Sent message to {peer.Address}:{peer.Port}");
+                        stream.Write(messageBytes, 0, messageBytes.Length);
+                        Console.WriteLine($"Sent message to {peer.Address}:{peer.Port}");
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to send message to {peer.Address}:{peer.Port}: {ex.Message}");
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to send message to {peer.Address}:{peer.Port}: {ex.Message}");
+                }
             }
         }
 
@@ -132,15 +174,18 @@ namespace BlockChainP2P.P2PNetwork.Services
 
         private void NotifyPeersAboutNewNode(NodeInfo newNode)
         {
-            foreach (var peer in _connectedPeers)
+            lock (_peerLock) // Lock when notifying peers about a new node
             {
-                //if (peer.Address != newNode.Address || peer.Port != newNode.Port)
-                //{
+                foreach (var peer in _connectedPeers)
+                {
+                    //if (peer.Address != newNode.Address || peer.Port != newNode.Port)
+                    //{
                     Console.WriteLine($"Notifying peer {peer.Address}:{peer.Port} about new node {newNode.Address}:{newNode.Port}");
                     var message = new Message("NewNode", $"{newNode.Address}:{newNode.Port}");
-                    
+
                     SendMessageToPeer(peer, message);
-                //}
+                    //}
+                }
             }
         }
 
@@ -159,7 +204,10 @@ namespace BlockChainP2P.P2PNetwork.Services
                     // Attempt to reconnect
                     var newClient = new TcpClient(motherServer.Address, motherServer.Port);
                     NodeInfo nodeInfo = new NodeInfo(motherServer.Address, motherServer.Port, newClient);
-                    _connectedPeers.Add(nodeInfo);
+                    lock (_peerLock)
+                    {
+                        _connectedPeers.Add(nodeInfo);
+                    }
                     HandleClient(newClient); // Handle the new connection
                     break; // Exit the loop if successful
                 }
