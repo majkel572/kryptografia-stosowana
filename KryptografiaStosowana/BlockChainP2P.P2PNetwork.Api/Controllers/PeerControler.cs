@@ -17,29 +17,7 @@ namespace BlockChainP2P.P2PNetwork.Api.Controllers
         }
 
         /// <summary>
-        /// Connects to existing peer network
-        /// </summary>
-        /// <param name="peer">Address of a peer which is already in network</param>
-        /// <returns></returns>
-        [HttpPost("ConnectWithPeerNetwork")]
-        [ProducesResponseType(typeof(string), StatusCodes.Status201Created)]
-        public async Task<IActionResult> ConnectWithPeerNetwork(PeerLib peer)
-        {
-            Log.Information($"Trying to register new peer with ip address: {peer.IPAddress} and port number: {peer.Port}");
-            string clientIpAddress;
-            int clientPort;
-            (clientIpAddress, clientPort) = GetRemoteIpAndPort();
-            Log.Information($"Request came from {clientIpAddress}:{clientPort}");
-
-            var result = await _peerManager.ConnectWithPeerNetworkAsync(peer);
-            // TODO; take from result list of known peers from the first host and put it in this node as known hosts
-            var resText = $"Successfully registered new peer with ip address: {peer.IPAddress} and port number: {peer.Port}";
-            Log.Information(resText);
-            return Ok(resText);
-        }
-
-        /// <summary>
-        /// Connects to existing peer network
+        /// Broadcasts new peer and registers it in node
         /// </summary>
         /// <param name="peer">Address of a peer to register and broadcast</param>
         /// <param name="alreadyInformedPeers">List of already informed peers</param>
