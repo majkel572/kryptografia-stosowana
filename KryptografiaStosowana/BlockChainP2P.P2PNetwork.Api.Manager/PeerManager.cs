@@ -69,7 +69,8 @@ internal class PeerManager : IPeerManager
         var workingPeerToSendList = workingPeerList.Except(alreadyInformedPeers).ToList();
 
         var totalInformedPeers = alreadyInformedPeers.Union(workingPeerList).ToList();
-
+        var thisNode = await _peerData.GetThisPeerInfoAsync();
+        totalInformedPeers.Add(thisNode);
         if(workingPeerToSendList.Count > 0)
         {
             await Parallel.ForEachAsync(workingPeerList, async (peer, cancellationToken) =>
