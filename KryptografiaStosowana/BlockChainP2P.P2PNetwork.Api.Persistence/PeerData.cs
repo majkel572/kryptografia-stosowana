@@ -47,21 +47,10 @@ internal class PeerData : IPeerData
         return _workingPeers;
     }
 
-    public async Task<PeerLib?> GetWorkingPeerAsync(int id)
-    {
-        return _workingPeers.FirstOrDefault(x => x.Id == id);
-    }
-
-    public async Task<PeerLib?> GetKnownPeerAsync(int id)
-    {
-        return _knownPeers.FirstOrDefault(x => x.Id == id);
-    }
-
     public async Task<PeerLib> AddPeerToKnownPeersAsync(PeerLib peer)
     {
         lock (_knownPeersLock)
         {
-            peer.Id = _knownPeers.Count + 1;
             _knownPeers.Add(peer);
         }
         return peer;
@@ -71,7 +60,6 @@ internal class PeerData : IPeerData
     {
         lock (_workingPeersLock)
         {
-            peer.Id = _workingPeers.Count + 1;
             _workingPeers.Add(peer);
         }
         return peer;
@@ -80,5 +68,22 @@ internal class PeerData : IPeerData
     public async Task<PeerLib> GetThisPeerInfoAsync()
     {
         return _thisPeerInfo;
+    }
+
+    public async Task<bool> AddPeersToWorkingAndKnownPeersInBulkAsync(List<PeerLib> peer)
+    {
+        if(peer != null && peer.Count > 0)
+        {
+            lock (_workingPeersLock)
+            {
+                _workingPeers.AddRange(peer);
+            }
+            lock (_knownPeersLock)
+            {
+                _knownPeers.AddRange(peer);
+            }
+        }
+
+        return true;
     }
 }

@@ -9,12 +9,11 @@ namespace BlockChainP2P.P2PNetwork.Api.Persistence.Interfaces;
 
 public interface IPeerData
 {
-    Task<PeerLib?> GetWorkingPeerAsync(int id);
-    Task<PeerLib?> GetKnownPeerAsync(int id);
     Task<List<PeerLib>> GetAllKnownPeersAsync();
     Task<List<PeerLib>> GetAllWorkingPeersAsync();
     Task<bool> DeletePeerFromWorkingPeersAsync(string ipAddress, string port);
     Task<PeerLib> AddPeerToKnownPeersAsync(PeerLib peer);
     Task<PeerLib> AddPeerToWorkingPeersAsync(PeerLib peer);
+    Task<bool> AddPeersToWorkingAndKnownPeersInBulkAsync(List<PeerLib> peer);
     Task<PeerLib> GetThisPeerInfoAsync();
 }
