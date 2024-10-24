@@ -19,6 +19,9 @@ internal class PeerManager : IPeerManager
 
     public async Task<bool> ConnectWithPeerNetworkAsync(PeerLib peerToSendConnection)
     {
+        await _peerData.AddPeerToKnownPeersAsync(peerToSendConnection);
+        await _peerData.AddPeerToWorkingPeersAsync(peerToSendConnection);
+
         using var httpClient = new HttpClient();
 
         var options = new JsonSerializerOptions
@@ -28,7 +31,13 @@ internal class PeerManager : IPeerManager
 
         var currentNodeInfo = await _peerData.GetThisPeerInfoAsync();
 
-        var json = JsonSerializer.Serialize(currentNodeInfo, options);
+        var payload = new RegisterAndBroadcastNewPeerRequest
+        {
+            AlreadyInformedPeers = new List<PeerLib>(),
+            PeerToRegisterAndBroadcast = currentNodeInfo,
+        };
+
+        var json = JsonSerializer.Serialize(payload, options);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var url = $"https://{peerToSendConnection.IPAddress}:{peerToSendConnection.Port}/api/RegisterAndBroadcastNewPeerAsync";
@@ -39,6 +48,8 @@ internal class PeerManager : IPeerManager
         {
             var responseContent = await response.Content.ReadAsStringAsync();
             Log.Information($"Node {peerToSendConnection.IPAddress}:{peerToSendConnection.Port} successfully broadcasted my presence.");
+            var peerList = JsonSerializer.Deserialize<List<PeerLib>>(responseContent, options)!;
+            await _peerData.AddPeersToWorkingAndKnownPeersInBulkAsync(peerList);
             return true;
         }
         else
@@ -48,27 +59,56 @@ internal class PeerManager : IPeerManager
         }
     }
 
-    public async Task<bool> RegisterAndBroadcastNewPeerAsync(PeerLib peerToRegisterAndBroadcast, List<PeerLib> alreadyInformedPeers)
+    public async Task<List<PeerLib>> RegisterAndBroadcastNewPeerAsync(PeerLib peerToRegisterAndBroadcast, List<PeerLib> alreadyInformedPeers)
     {
+        var workingPeerList = await _peerData.GetAllWorkingPeersAsync();
+
         await _peerData.AddPeerToKnownPeersAsync(peerToRegisterAndBroadcast); // TODO; dodac blokade wrzucania dwa razy tego samego
         await _peerData.AddPeerToWorkingPeersAsync(peerToRegisterAndBroadcast);
 
-        var workingPeerList = await _peerData.GetAllWorkingPeersAsync();
-        
+        var workingPeerToSendList = workingPeerList.Except(alreadyInformedPeers).ToList();
 
-        
+        var totalInformedPeers = alreadyInformedPeers.Union(workingPeerList).ToList();
 
-        return true;
-    }
-
-    private async Task<bool> BroadcastNewPeerAsync(PeerLib newPeer, List<PeerLib> notifiedPeerList)
-    {
-        foreach(var existingPeer in notifiedPeerList)
+        if(workingPeerToSendList.Count > 0)
         {
-            // post request to api of each node
+            await Parallel.ForEachAsync(workingPeerList, async (peer, cancellationToken) =>
+            {
+                using var httpClient = new HttpClient();
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+
+                var payload = new RegisterAndBroadcastNewPeerRequest
+                {
+                    AlreadyInformedPeers = totalInformedPeers,
+                    PeerToRegisterAndBroadcast = peerToRegisterAndBroadcast,
+                };
+
+                var json = JsonSerializer.Serialize(payload, options);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var url = $"https://{peer.IPAddress}:{peer.Port}/api/RegisterAndBroadcastNewPeerAsync";
+
+                var response = await httpClient.PostAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Successfully informed node {peer.IPAddress}:{peer.Port} about {peerToRegisterAndBroadcast.IPAddress}:{peerToRegisterAndBroadcast.Port}");
+                }
+                else
+                {
+                    Console.WriteLine($"Failed to inform node {peer.IPAddress}:{peer.Port} about {peerToRegisterAndBroadcast.IPAddress}:{peerToRegisterAndBroadcast.Port}");
+                }
+            });
         }
-        return true;
+        else
+        {
+            Console.WriteLine("All peers have been informed.");
+        }
+
+        return workingPeerList;
     }
-
-
 }

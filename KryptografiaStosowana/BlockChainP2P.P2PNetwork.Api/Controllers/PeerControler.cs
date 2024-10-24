@@ -21,7 +21,7 @@ namespace BlockChainP2P.P2PNetwork.Api.Controllers
         /// </summary>
         /// <param name="peer">Address of a peer which is already in network</param>
         /// <returns></returns>
-        [HttpPost(Name = "ConnectWithPeerNetwork")]
+        [HttpPost("ConnectWithPeerNetwork")]
         [ProducesResponseType(typeof(string), StatusCodes.Status201Created)]
         public async Task<IActionResult> ConnectWithPeerNetwork(PeerLib peer)
         {
@@ -44,8 +44,8 @@ namespace BlockChainP2P.P2PNetwork.Api.Controllers
         /// <param name="peer">Address of a peer to register and broadcast</param>
         /// <param name="alreadyInformedPeers">List of already informed peers</param>
         /// <returns></returns>
-        [HttpPost(Name = "RegisterAndBroadcastNewPeerAsync")]
-        [ProducesResponseType(typeof(string), StatusCodes.Status201Created)]
+        [HttpPost("RegisterAndBroadcastNewPeerAsync")]
+        [ProducesResponseType(typeof(List<PeerLib>), StatusCodes.Status201Created)]
         public async Task<IActionResult> RegisterAndBroadcastNewPeerAsync(RegisterAndBroadcastNewPeerRequest request) // TODO; api token zeby nie moc wywolac tego manualnie
         {
             Log.Information($"Trying to broadcast new peer with ip address: {request.PeerToRegisterAndBroadcast.IPAddress} and port number: {request.PeerToRegisterAndBroadcast.Port}");

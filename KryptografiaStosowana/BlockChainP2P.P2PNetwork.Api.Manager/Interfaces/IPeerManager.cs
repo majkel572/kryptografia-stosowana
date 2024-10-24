@@ -9,7 +9,7 @@ namespace BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
 
 public interface IPeerManager
 {
-    Task<bool> RegisterAndBroadcastNewPeerAsync(PeerLib peerToRegisterAndBroadcast, List<PeerLib> alreadyInformedPeers);
+    Task<List<PeerLib>> RegisterAndBroadcastNewPeerAsync(PeerLib peerToRegisterAndBroadcast, List<PeerLib> alreadyInformedPeers);
     Task<bool> ConnectWithPeerNetworkAsync(PeerLib peerToSendConnection);
     //Task<bool> AddPeerToKnownPeersAsync(PeerLib peer);
     //Task<bool> AddPeerToWorkingPeersAsync(PeerLib peer);

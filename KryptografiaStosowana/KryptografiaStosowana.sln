@@ -3,21 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlockChainP2PAPI.UsesHttp", "BlockChainP2PAPI.UsesHttp\BlockChainP2PAPI.UsesHttp.csproj", "{A47BFDCD-33DF-4DC2-8AA4-D22C78721EDF}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlockChainP2P.WalletHandler", "BlockChainP2P.WalletHandler\BlockChainP2P.WalletHandler.csproj", "{5D8EA104-C1BB-4E0A-96AD-F89A2A91EB62}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlockChainP2P.WalletHandler.Test", "BlockChainP2P.WalletHandler.Test\BlockChainP2P.WalletHandler.Test.csproj", "{308090A7-49D0-4E52-9D05-227B5A375CB5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlockChainP2P.P2PNetwork", "BlockChainP2P.P2PNetwork\BlockChainP2P.P2PNetwork.csproj", "{92BBC71C-E21E-46D5-9031-1F3C311C78C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlockChainP2P.P2PNetwork.Api", "BlockChainP2P.P2PNetwork.Api\BlockChainP2P.P2PNetwork.Api.csproj", "{6436C232-EE7F-4E83-A38B-06F36C305806}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlockChainP2P.P2PNetwork.Api", "BlockChainP2P.P2PNetwork.Api\BlockChainP2P.P2PNetwork.Api.csproj", "{6436C232-EE7F-4E83-A38B-06F36C305806}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlockChainP2P.P2PNetwork.Api.Manager", "BlockChainP2P.P2PNetwork.Api.Manager\BlockChainP2P.P2PNetwork.Api.Manager.csproj", "{30D5A82E-C7ED-4A4C-B62B-7B52A95D1C72}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlockChainP2P.P2PNetwork.Api.Manager", "BlockChainP2P.P2PNetwork.Api.Manager\BlockChainP2P.P2PNetwork.Api.Manager.csproj", "{30D5A82E-C7ED-4A4C-B62B-7B52A95D1C72}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlockChainP2P.P2PNetwork.Api.Persistence", "BlockChainP2P.P2PNetwork.Api.Persistence\BlockChainP2P.P2PNetwork.Api.Persistence.csproj", "{5FEEE3F7-6246-40F1-9925-17BCEA56E36D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlockChainP2P.P2PNetwork.Api.Persistence", "BlockChainP2P.P2PNetwork.Api.Persistence\BlockChainP2P.P2PNetwork.Api.Persistence.csproj", "{5FEEE3F7-6246-40F1-9925-17BCEA56E36D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlockChainP2P.P2PNetwork.Api.Lib", "BlockChainP2P.P2PNetwork.Api.Lib\BlockChainP2P.P2PNetwork.Api.Lib.csproj", "{0667C421-9DDE-4C9F-953B-26925981DA34}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlockChainP2P.P2PNetwork.Api.Lib", "BlockChainP2P.P2PNetwork.Api.Lib\BlockChainP2P.P2PNetwork.Api.Lib.csproj", "{0667C421-9DDE-4C9F-953B-26925981DA34}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,10 +23,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{A47BFDCD-33DF-4DC2-8AA4-D22C78721EDF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A47BFDCD-33DF-4DC2-8AA4-D22C78721EDF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A47BFDCD-33DF-4DC2-8AA4-D22C78721EDF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A47BFDCD-33DF-4DC2-8AA4-D22C78721EDF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5D8EA104-C1BB-4E0A-96AD-F89A2A91EB62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5D8EA104-C1BB-4E0A-96AD-F89A2A91EB62}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D8EA104-C1BB-4E0A-96AD-F89A2A91EB62}.Release|Any CPU.ActiveCfg = Release|Any CPU
