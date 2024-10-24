@@ -56,7 +56,7 @@ namespace BlockChainP2P.P2PNetwork.Api.Controllers
 
             var result = await _peerManager.RegisterAndBroadcastNewPeerAsync(request.PeerToRegisterAndBroadcast, request.AlreadyInformedPeers);
 
-            Log.Information($"Successfully registered new peer with ip address: {request.PeerToRegisterAndBroadcast.IPAddress} and port number: {request.PeerToRegisterAndBroadcast.Port}");
+            Log.Information($"Successfully broadcasted new peer with ip address: {request.PeerToRegisterAndBroadcast.IPAddress} and port number: {request.PeerToRegisterAndBroadcast.Port}");
             return Ok(result);
         }
 

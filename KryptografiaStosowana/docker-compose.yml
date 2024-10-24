@@ -1,0 +1,37 @@
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${NETWORK_SUBNET}
+          gateway: ${NETWORK_GATEWAY}
+
+services:
+  node1:
+    environment:
+        - NodeIpAddress=${NODE_1_IP}
+        - NodePort=8080
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE_PATH}
+    ports:
+      - "8080:8080"
+    networks:
+      app-network:
+        ipv4_address: ${NODE_1_IP}
+
+  node2:
+    environment:
+      - NodeIpAddress=${NODE_2_IP}
+      - NodePort=8080
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE_PATH}
+    ports:
+      - "8081:8080"
+    depends_on:
+      - node1
+    networks:
+      app-network:
+        ipv4_address: ${NODE_2_IP}

@@ -7,6 +7,11 @@ using Serilog.Formatting.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration.AddEnvironmentVariables();
+Console.WriteLine("Ipaddress: " + builder.Configuration.GetSection("NodeIpAddress").Value!);
+Console.WriteLine("port: " + builder.Configuration.GetSection("NodePort").Value!);
+
+
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .MinimumLevel.Information()
