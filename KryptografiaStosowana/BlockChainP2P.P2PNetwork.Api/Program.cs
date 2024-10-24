@@ -1,3 +1,5 @@
+using BlockChainP2P.P2PNetwork.Api.Lib;
+using BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
 using BlockChainP2P.P2PNetwork.Api.Manager.ServiceHelpers;
 using BlockChainP2P.P2PNetwork.Api.Middlewares;
 using BlockChainP2P.P2PNetwork.Api.Persistence.ServiceHelpers;
@@ -45,3 +47,28 @@ app.MapControllers();
 app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 app.Run();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    
+    try
+    {
+        var peerManager = services.GetRequiredService<IPeerManager>();
+
+        var peerInNetwork = new PeerLib
+        {
+            IPAddress = args[0],
+            Port = args[1],
+        };
+
+        var result = await peerManager.ConnectWithPeerNetworkAsync(peerInNetwork);
+
+        var resText = $"Successfully registered new peer with IP address: {peerInNetwork.IPAddress} and port number: {peerInNetwork.Port}";
+        Log.Information(resText);
+    }
+    catch (Exception ex)
+    {
+        Log.Error("An error occurred while connecting to the peer network: {Error}", ex.Message);
+    }
+}
