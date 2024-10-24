@@ -21,8 +21,10 @@ internal class PeerManager : IPeerManager
     {
         await _peerData.AddPeerToKnownPeersAsync(peerToSendConnection);
         await _peerData.AddPeerToWorkingPeersAsync(peerToSendConnection);
+        HttpClientHandler handler = new HttpClientHandler();
+        handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 
-        using var httpClient = new HttpClient();
+        using var httpClient = new HttpClient(handler);
 
         var options = new JsonSerializerOptions
         {
@@ -75,7 +77,9 @@ internal class PeerManager : IPeerManager
         {
             await Parallel.ForEachAsync(workingPeerList, async (peer, cancellationToken) =>
             {
-                using var httpClient = new HttpClient();
+                HttpClientHandler handler = new HttpClientHandler();
+                handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
+                using var httpClient = new HttpClient(handler);
 
                 var options = new JsonSerializerOptions
                 {

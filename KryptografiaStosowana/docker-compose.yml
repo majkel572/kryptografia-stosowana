@@ -26,7 +26,7 @@ services:
     networks:
       app-network:
         ipv4_address: ${NODE_1_IP}
-    # command: ["bash", "-c", "update-ca-certificates && echo 'Hello, World!'"]
+    entrypoint: ["dotnet", "BlockChainP2P.P2PNetwork.Api.dll", "init"]
 
   node2:
     build:
@@ -48,4 +48,4 @@ services:
         ipv4_address: ${NODE_2_IP}
     depends_on:
       - node1
-    # command: ["bash", "-c", "update-ca-certificates && echo 'Hello, World!'"]
+    entrypoint: ["sh", "-c", "sleep 5 && dotnet BlockChainP2P.P2PNetwork.Api.dll ${NODE_1_IP}"]
