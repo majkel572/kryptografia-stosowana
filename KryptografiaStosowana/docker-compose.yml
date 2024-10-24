@@ -9,29 +9,43 @@ networks:
 
 services:
   node1:
-    environment:
-        - NodeIpAddress=${NODE_1_IP}
-        - NodePort=8080
     build:
       context: .
       dockerfile: ${DOCKERFILE_PATH}
     ports:
-      - "8080:8080"
+      - "8081:8081"
+    environment:
+        - NodeIpAddress=${NODE_1_IP}
+        - NodePort=8081
+        - ASPNETCORE_ENVIRONMENT=Development
+        - ASPNETCORE_URLS=https://+:8081;http://+:8080
+        - ASPNETCORE_Kestrel__Certificates__Default__Password=Admin.1234
+        - ASPNETCORE_Kestrel__Certificates__Default__Path=/usr/local/share/ca-certificates/mycert.pfx
+    volumes:
+      - ./cert:/usr/local/share/ca-certificates/:ro
     networks:
       app-network:
         ipv4_address: ${NODE_1_IP}
+    # command: ["bash", "-c", "update-ca-certificates && echo 'Hello, World!'"]
 
   node2:
-    environment:
-      - NodeIpAddress=${NODE_2_IP}
-      - NodePort=8080
     build:
       context: .
       dockerfile: ${DOCKERFILE_PATH}
     ports:
-      - "8081:8080"
-    depends_on:
-      - node1
+      - "8082:8081"
+    environment:
+      - NodeIpAddress=${NODE_2_IP}
+      - NodePort=8081
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:8081;http://+:8080
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=Admin.1234
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/usr/local/share/ca-certificates/mycert.pfx
+    volumes:
+      - ./cert:/usr/local/share/ca-certificates/:ro
     networks:
       app-network:
         ipv4_address: ${NODE_2_IP}
+    depends_on:
+      - node1
+    # command: ["bash", "-c", "update-ca-certificates && echo 'Hello, World!'"]
