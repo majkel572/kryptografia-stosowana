@@ -20,5 +20,14 @@ namespace BlockChainP2P.WalletHandler.KeyManagement
                 return new KeyPair(publicKey, privateKey);
             }
         }
+        public static string GeneratePublicKeyFromPrivateKey(string privateKey)
+        {
+            using (ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256))
+            {
+                ecdsa.ImportECPrivateKey(Convert.FromBase64String(privateKey), out _);
+
+                return Convert.ToBase64String(ecdsa.ExportSubjectPublicKeyInfo());
+            }
+        }
     }
 }

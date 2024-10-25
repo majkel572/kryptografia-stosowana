@@ -73,6 +73,15 @@ public class Wallet
         }
     }
 
+    public List<KeyPair> GetKeyPairs()
+    {
+        lock (_lock)
+        {
+            List<KeyPair> privateAddresses = new List<KeyPair>(_keyPairs);
+            return privateAddresses;
+        }
+    }
+
     public string GetActivePublicAddress()
     {
         lock (_lock)

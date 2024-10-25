@@ -42,8 +42,7 @@ internal class PeerManager : IPeerManager
         var json = JsonSerializer.Serialize(payload, options);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var url = $"https://{peerToSendConnection.IPAddress}:{peerToSendConnection.Port}/api/RegisterAndBroadcastNewPeerAsync";
-
+        var url = $"https://{peerToSendConnection.IPAddress}:{peerToSendConnection.Port}/PeerControler/RegisterAndBroadcastNewPeerAsync";
         var response = await httpClient.PostAsync(url, content);
 
         if (response.IsSuccessStatusCode)
@@ -64,7 +63,7 @@ internal class PeerManager : IPeerManager
     public async Task<List<PeerLib>> RegisterAndBroadcastNewPeerAsync(PeerLib peerToRegisterAndBroadcast, List<PeerLib> alreadyInformedPeers)
     {
         var workingPeerList = await _peerData.GetAllWorkingPeersAsync();
-
+        
         await _peerData.AddPeerToKnownPeersAsync(peerToRegisterAndBroadcast); // TODO; dodac blokade wrzucania dwa razy tego samego
         await _peerData.AddPeerToWorkingPeersAsync(peerToRegisterAndBroadcast);
 
@@ -95,7 +94,7 @@ internal class PeerManager : IPeerManager
                 var json = JsonSerializer.Serialize(payload, options);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var url = $"https://{peer.IPAddress}:{peer.Port}/api/RegisterAndBroadcastNewPeerAsync";
+                var url = $"https://{peer.IPAddress}:{peer.Port}/PeerControler/RegisterAndBroadcastNewPeerAsync";
 
                 var response = await httpClient.PostAsync(url, content);
 

@@ -39,12 +39,12 @@ internal class PeerData : IPeerData
 
     public async Task<List<PeerLib>> GetAllKnownPeersAsync()
     {
-        return _knownPeers;
+        return new List<PeerLib>(_knownPeers);
     }
 
     public async Task<List<PeerLib>> GetAllWorkingPeersAsync()
     {
-        return _workingPeers;
+        return new List<PeerLib>(_workingPeers);
     }
 
     public async Task<PeerLib> AddPeerToKnownPeersAsync(PeerLib peer)
@@ -59,8 +59,11 @@ internal class PeerData : IPeerData
     public async Task<PeerLib> AddPeerToWorkingPeersAsync(PeerLib peer)
     {
         lock (_workingPeersLock)
-        {
-            _workingPeers.Add(peer);
+        {   
+            if(!_workingPeers.Any(x => x.Port == peer.Port && x.IPAddress == peer.IPAddress))
+            {
+                _workingPeers.Add(peer);
+            }
         }
         return peer;
     }
