@@ -44,8 +44,12 @@ public class KeyStorage
     {
         using (Aes aes = Aes.Create())
         {
-            aes.Key = Encoding.UTF8.GetBytes(_encryptionKey);
-            aes.IV = new byte[16];
+
+            using (var keyDerivationFunction = new Rfc2898DeriveBytes(_encryptionKey, 16, 10000, HashAlgorithmName.SHA256))
+            {
+                aes.Key = keyDerivationFunction.GetBytes(32);
+                aes.IV = new byte[16];
+            }
 
             ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
             using (MemoryStream ms = new MemoryStream())
@@ -65,8 +69,11 @@ public class KeyStorage
     {
         using (Aes aes = Aes.Create())
         {
-            aes.Key = Encoding.UTF8.GetBytes(_encryptionKey);
-            aes.IV = new byte[16];
+            using (var keyDerivationFunction = new Rfc2898DeriveBytes(_encryptionKey, 16, 10000, HashAlgorithmName.SHA256))
+            {
+                aes.Key = keyDerivationFunction.GetBytes(32);
+                aes.IV = new byte[16];
+            }
 
             ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
             using (MemoryStream ms = new MemoryStream(Convert.FromBase64String(encryptedPrivateKey)))
