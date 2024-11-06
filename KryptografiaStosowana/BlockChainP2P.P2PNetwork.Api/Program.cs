@@ -1,4 +1,5 @@
 using BlockChainP2P.P2PNetwork.Api.Lib;
+using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 using BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
 using BlockChainP2P.P2PNetwork.Api.Manager.ServiceHelpers;
 using BlockChainP2P.P2PNetwork.Api.Middlewares;
@@ -74,6 +75,10 @@ if (args[0]!="init")
             Log.Error("An error occurred while connecting to the peer network: {Error}", ex.Message);
         }
     }
+}
+else
+{
+    // create here genesis block
 }
 
 app.Run();

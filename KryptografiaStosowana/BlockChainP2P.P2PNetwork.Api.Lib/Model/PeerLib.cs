@@ -1,4 +1,4 @@
-﻿namespace BlockChainP2P.P2PNetwork.Api.Lib;
+﻿namespace BlockChainP2P.P2PNetwork.Api.Lib.Model;
 
 public class PeerLib
 {

@@ -4,6 +4,7 @@ using BlockChainP2P.P2PNetwork.Api.Persistence.Interfaces;
 using System.Text.Json;
 using System.Text;
 using Serilog;
+using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 
 namespace BlockChainP2P.P2PNetwork.Api.Manager;
 

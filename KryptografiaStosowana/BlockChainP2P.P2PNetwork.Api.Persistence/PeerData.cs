@@ -1,4 +1,4 @@
-﻿using BlockChainP2P.P2PNetwork.Api.Lib;
+﻿using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 using BlockChainP2P.P2PNetwork.Api.Persistence.Interfaces;
 using Microsoft.Extensions.Configuration;
 
