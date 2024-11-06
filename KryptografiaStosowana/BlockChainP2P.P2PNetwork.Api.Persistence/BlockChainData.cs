@@ -49,7 +49,7 @@ internal class BlockChainData : IBlockChainData
         }
     }
 
-    public void SwapBlockChains(List<BlockLib> newBlockChain)
+    public void SwapBlockChainsAsync(List<BlockLib> newBlockChain)
     {
         lock (_blockChainLock)
         {
