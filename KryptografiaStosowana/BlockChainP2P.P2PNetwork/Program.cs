@@ -8,7 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace P2PNode
+namespace BlockChainP2P.P2PNetwork
 {
     class Program
     {
@@ -91,7 +91,7 @@ namespace P2PNode
         {
             foreach (var ip in Dns.GetHostEntry(Dns.GetHostName()).AddressList)
             {
-                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
                 {
                     return ip.ToString();
                 }

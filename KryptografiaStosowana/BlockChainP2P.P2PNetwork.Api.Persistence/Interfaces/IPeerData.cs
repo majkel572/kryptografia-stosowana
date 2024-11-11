@@ -1,4 +1,4 @@
-﻿using BlockChainP2P.P2PNetwork.Api.Lib;
+﻿using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;

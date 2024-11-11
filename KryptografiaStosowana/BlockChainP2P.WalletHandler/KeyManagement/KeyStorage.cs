@@ -29,6 +29,7 @@ public class KeyStorage
 
     public List<string> LoadPrivateKeys(string filePath)
     {
+        var text = File.ReadAllText(filePath);
         var encryptedKeys = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(filePath));
         var privateKeys = new List<string>();
 
@@ -44,44 +45,66 @@ public class KeyStorage
     {
         using (Aes aes = Aes.Create())
         {
-
-            using (var keyDerivationFunction = new Rfc2898DeriveBytes(_encryptionKey, 16, 10000, HashAlgorithmName.SHA256))
+            byte[] salt = GenerateRandomBytes(16); 
+            using (var keyDerivationFunction = new Rfc2898DeriveBytes(_encryptionKey, salt, 10000, HashAlgorithmName.SHA256))
             {
                 aes.Key = keyDerivationFunction.GetBytes(32);
-                aes.IV = new byte[16];
-            }
+                aes.GenerateIV(); 
 
-            ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-            using (MemoryStream ms = new MemoryStream())
-            {
-                using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-                using (StreamWriter writer = new StreamWriter(cs))
+                ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+                using (MemoryStream ms = new MemoryStream())
                 {
-                    writer.Write(privateKey);
-                }
+                    ms.Write(salt, 0, salt.Length); 
+                    ms.Write(aes.IV, 0, aes.IV.Length); 
+                    using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+                    using (StreamWriter writer = new StreamWriter(cs))
+                    {
+                        writer.Write(privateKey);
+                    }
 
-                return Convert.ToBase64String(ms.ToArray());
+                    return Convert.ToBase64String(ms.ToArray());
+                }
             }
         }
     }
+
+    private byte[] GenerateRandomBytes(int length)
+    {
+        byte[] randomBytes = new byte[length];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(randomBytes);
+        }
+        return randomBytes;
+    }
+
 
     private string DecryptPrivateKey(string encryptedPrivateKey)
     {
-        using (Aes aes = Aes.Create())
+        byte[] fullCipher = Convert.FromBase64String(encryptedPrivateKey);
+
+        using (MemoryStream ms = new MemoryStream(fullCipher))
         {
-            using (var keyDerivationFunction = new Rfc2898DeriveBytes(_encryptionKey, 16, 10000, HashAlgorithmName.SHA256))
+            byte[] salt = new byte[16];
+            ms.Read(salt, 0, salt.Length); 
+
+            byte[] iv = new byte[16];
+            ms.Read(iv, 0, iv.Length);
+
+            using (Aes aes = Aes.Create())
+            using (var keyDerivationFunction = new Rfc2898DeriveBytes(_encryptionKey, salt, 10000, HashAlgorithmName.SHA256))
             {
                 aes.Key = keyDerivationFunction.GetBytes(32);
-                aes.IV = new byte[16];
-            }
+                aes.IV = iv;
 
-            ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-            using (MemoryStream ms = new MemoryStream(Convert.FromBase64String(encryptedPrivateKey)))
-            using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
-            using (StreamReader reader = new StreamReader(cs))
-            {
-                return reader.ReadToEnd();
+                ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+                using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                using (StreamReader reader = new StreamReader(cs))
+                {
+                    return reader.ReadToEnd();
+                }
             }
         }
     }
+
 }
