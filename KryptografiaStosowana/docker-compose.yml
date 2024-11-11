@@ -17,7 +17,7 @@ services:
     environment:
         - NodeIpAddress=${NODE_1_IP}
         - NodePort=8081
-        - ASPNETCORE_ENVIRONMENT=Development
+        # - ASPNETCORE_ENVIRONMENT=Development
         - ASPNETCORE_URLS=https://+:8081;http://+:8080
         - ASPNETCORE_Kestrel__Certificates__Default__Password=Admin.1234
         - ASPNETCORE_Kestrel__Certificates__Default__Path=/usr/local/share/ca-certificates/mycert.pfx
@@ -37,7 +37,7 @@ services:
     environment:
       - NodeIpAddress=${NODE_2_IP}
       - NodePort=8081
-      - ASPNETCORE_ENVIRONMENT=Development
+      # - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=https://+:8081;http://+:8080
       - ASPNETCORE_Kestrel__Certificates__Default__Password=Admin.1234
       - ASPNETCORE_Kestrel__Certificates__Default__Path=/usr/local/share/ca-certificates/mycert.pfx
@@ -59,7 +59,7 @@ services:
     environment:
       - NodeIpAddress=${NODE_3_IP}
       - NodePort=8081
-      - ASPNETCORE_ENVIRONMENT=Development
+      # - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=https://+:8081;http://+:8080
       - ASPNETCORE_Kestrel__Certificates__Default__Password=Admin.1234
       - ASPNETCORE_Kestrel__Certificates__Default__Path=/usr/local/share/ca-certificates/mycert.pfx
@@ -81,7 +81,7 @@ services:
     environment:
       - NodeIpAddress=${NODE_4_IP}
       - NodePort=8081
-      - ASPNETCORE_ENVIRONMENT=Development
+      # - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=https://+:8081;http://+:8080
       - ASPNETCORE_Kestrel__Certificates__Default__Password=Admin.1234
       - ASPNETCORE_Kestrel__Certificates__Default__Path=/usr/local/share/ca-certificates/mycert.pfx
@@ -92,4 +92,26 @@ services:
         ipv4_address: ${NODE_4_IP}
     depends_on:
       - node2
-    entrypoint: ["sh", "-c", "sleep 6 && dotnet BlockChainP2P.P2PNetwork.Api.dll ${NODE_2_IP}"]
+    entrypoint: ["sh", "-c", "dotnet BlockChainP2P.P2PNetwork.Api.dll ${NODE_2_IP}"]
+
+  node5:
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE_PATH}
+    ports:
+      - "8084:8081"
+    environment:
+      - NodeIpAddress=${NODE_5_IP}
+      - NodePort=8081
+      # - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:8081;http://+:8080
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=Admin.1234
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/usr/local/share/ca-certificates/mycert.pfx
+    volumes:
+      - ./cert:/usr/local/share/ca-certificates/:ro
+    networks:
+      app-network:
+        ipv4_address: ${NODE_5_IP}
+    depends_on:
+      - node1
+    entrypoint: ["sh", "-c", "sleep 20 && dotnet BlockChainP2P.P2PNetwork.Api.dll ${NODE_1_IP}"]

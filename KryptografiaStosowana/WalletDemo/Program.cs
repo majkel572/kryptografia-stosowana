@@ -153,7 +153,7 @@ namespace WalletDemo
                 foreach (var privateKey in privateKeys)
                 {
                     string publicKey = KeyGenerator.GeneratePublicKeyFromPrivateKey(privateKey);
-                    var keyPair = new KeyPair(publicKey, privateKey);  // Konieczna jest konwersja klucza prywatnego na publiczny
+                    var keyPair = new KeyPair(publicKey, privateKey);
                     wallet.AddKeyPair(keyPair);
                 }
 
