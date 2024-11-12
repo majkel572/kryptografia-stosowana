@@ -16,4 +16,11 @@ public static class ServiceExtensions
             .AddTransient<IPeerManager, PeerManager>();
         return services;
     }
+
+    public static IServiceCollection AddBlockChainManagers(this IServiceCollection services)
+    {
+        services
+            .AddTransient<IBlockChainManager, BlockChainManager>();
+        return services;
+    }
 }

@@ -27,7 +27,7 @@ public class BlockChainController : ControllerBase
     /// <returns></returns>
     [HttpGet("GetBlockchain")]
     [ProducesResponseType(typeof(List<BlockLib>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> RegisterAndBroadcastNewPeerAsync()
+    public async Task<IActionResult> GetBlockchainAsync()
     {
         var result = await _blockChainData.GetBlockChainAsync();
         return Ok(result);
@@ -40,7 +40,7 @@ public class BlockChainController : ControllerBase
     /// <returns></returns>
     [HttpPost("CreateNextBlock")]
     [ProducesResponseType(typeof(BlockLib), StatusCodes.Status201Created)]
-    public async Task<IActionResult> RegisterAndBroadcastNewPeerAsync([FromBody] string request)
+    public async Task<IActionResult> CreateNextBlockAsync([FromBody] string request)
     {
         var result = await _blockChainManager.GenerateNextBlockAsync(request);
         return Ok(result);

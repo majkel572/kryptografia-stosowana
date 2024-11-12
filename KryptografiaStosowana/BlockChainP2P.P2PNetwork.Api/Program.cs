@@ -26,6 +26,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddPersistenceData();
 builder.Services.AddP2PManagers();
+builder.Services.AddBlockChainManagers();
 
 
 var app = builder.Build();
@@ -68,6 +69,9 @@ if (args[0]!="init")
             {
                 var resText = $"Successfully registered new peer with IP address: {peerInNetwork.IPAddress} and port number: {peerInNetwork.Port}";
                 Log.Information(resText);
+                var blockChainManager = services.GetRequiredService<IBlockChainManager>();
+                // TODO get blockchain
+                
             }
         }
         catch (Exception ex)
