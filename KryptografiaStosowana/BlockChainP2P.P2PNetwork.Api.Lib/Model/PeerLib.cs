@@ -4,6 +4,7 @@ public class PeerLib
 {
     public string IPAddress { get; set; }
     public string Port { get; set; }
+    public string? ConnectionId { get; set; }
 
     public override bool Equals(object obj)
     {

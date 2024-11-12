@@ -16,4 +16,5 @@ public interface IPeerData
     Task<PeerLib> AddPeerToWorkingPeersAsync(PeerLib peer);
     Task<bool> AddPeersToWorkingAndKnownPeersInBulkAsync(List<PeerLib> peer);
     Task<PeerLib> GetThisPeerInfoAsync();
+    Task<PeerLib?> GetPeerByConnectionIdAsync(string connectionId);
 }

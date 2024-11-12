@@ -89,4 +89,12 @@ internal class PeerData : IPeerData
 
         return true;
     }
+
+    public async Task<PeerLib?> GetPeerByConnectionIdAsync(string connectionId)
+    {
+        lock (_workingPeersLock)
+        {
+            return _workingPeers.FirstOrDefault(p => p.ConnectionId == connectionId);
+        }
+    }
 }
