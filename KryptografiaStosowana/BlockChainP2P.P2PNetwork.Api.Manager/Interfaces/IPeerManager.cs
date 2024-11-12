@@ -11,6 +11,8 @@ public interface IPeerManager
 {
     Task<bool> ConnectWithPeerNetworkAsync(PeerLib peerToConnect);
     Task RegisterPeerAsync(PeerLib peer, string connectionId);
+    Task RegisterPeersAsync(List<PeerLib> peers);
     Task RemovePeerAsync(string connectionId);
     Task BroadcastToPeers<T>(string method, T data);
+    Task<List<PeerLib>> GetKnownPeersAsync();
 }

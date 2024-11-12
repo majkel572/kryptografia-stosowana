@@ -51,7 +51,10 @@ internal class PeerData : IPeerData
     {
         lock (_knownPeersLock)
         {
-            _knownPeers.Add(peer);
+            if (!_knownPeers.Any(x => x.IPAddress == peer.IPAddress && x.Port == peer.Port))
+            {
+                _knownPeers.Add(peer);
+            }
         }
         return peer;
     }
@@ -60,7 +63,7 @@ internal class PeerData : IPeerData
     {
         lock (_workingPeersLock)
         {   
-            if(!_workingPeers.Any(x => x.Port == peer.Port && x.IPAddress == peer.IPAddress))
+            if(!_workingPeers.Any(x => x.IPAddress == peer.IPAddress && x.Port == peer.Port))
             {
                 _workingPeers.Add(peer);
             }

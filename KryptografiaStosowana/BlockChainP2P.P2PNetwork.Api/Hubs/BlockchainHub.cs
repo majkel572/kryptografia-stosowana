@@ -16,7 +16,20 @@ public class BlockchainHub : Hub
     public async Task RegisterPeer(PeerLib peer)
     {
         await _peerManager.RegisterPeerAsync(peer, Context.ConnectionId);
+        
+        // Pobierz listę znanych peerów
+        var knownPeers = await _peerManager.GetKnownPeersAsync();
+        
+        // Wyślij listę znanych peerów do nowego peera
+        await Clients.Caller.SendAsync("ReceiveKnownPeers", knownPeers);
+        
+        // Powiadom innych o nowym peerze
         await Clients.Others.SendAsync("PeerJoined", peer);
+    }
+
+    public async Task ReceiveKnownPeers(List<PeerLib> peers)
+    {
+        await _peerManager.RegisterPeersAsync(peers);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
