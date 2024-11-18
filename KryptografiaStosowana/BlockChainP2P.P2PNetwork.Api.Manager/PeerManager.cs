@@ -6,115 +6,175 @@ using System.Text;
 using Serilog;
 using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 using BlockChainP2P.P2PNetwork.Api.Lib.Request;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace BlockChainP2P.P2PNetwork.Api.Manager;
 
 internal class PeerManager : IPeerManager
 {
     private readonly IPeerData _peerData;
+    private readonly Dictionary<string, HubConnection> _connections;
+    private readonly object _connectionsLock = new object();
 
     public PeerManager(IPeerData peerData)
     {
-        _peerData = peerData 
-            ?? throw new ArgumentNullException(nameof(peerData));
+        _peerData = peerData ?? throw new ArgumentNullException(nameof(peerData));
+        _connections = new Dictionary<string, HubConnection>();
     }
 
-    public async Task<bool> ConnectWithPeerNetworkAsync(PeerLib peerToSendConnection)
+    public async Task<bool> ConnectWithPeerNetworkAsync(PeerLib peerToConnect)
     {
-        await _peerData.AddPeerToKnownPeersAsync(peerToSendConnection);
-        await _peerData.AddPeerToWorkingPeersAsync(peerToSendConnection);
-        HttpClientHandler handler = new HttpClientHandler();
-        handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
-
-        using var httpClient = new HttpClient(handler);
-
-        var options = new JsonSerializerOptions
+        var thisNode = await _peerData.GetThisPeerInfoAsync();
+        if (peerToConnect.IPAddress == thisNode.IPAddress && peerToConnect.Port == thisNode.Port)
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+            Log.Information("Skipping connection attempt to self");
+            return false;
+        }
 
-        var currentNodeInfo = await _peerData.GetThisPeerInfoAsync();
-
-        var payload = new RegisterAndBroadcastNewPeerRequest
+        string connectionKey = $"{peerToConnect.IPAddress}:{peerToConnect.Port}";
+        lock (_connectionsLock)
         {
-            AlreadyInformedPeers = new List<PeerLib>(),
-            PeerToRegisterAndBroadcast = currentNodeInfo,
-        };
+            if (_connections.ContainsKey(connectionKey))
+            {
+                Log.Information($"Already connected to peer {connectionKey}");
+                return true;
+            }
+        }
 
-        var json = JsonSerializer.Serialize(payload, options);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        var url = $"https://{peerToSendConnection.IPAddress}:{peerToSendConnection.Port}/PeerControler/RegisterAndBroadcastNewPeerAsync";
-        var response = await httpClient.PostAsync(url, content);
-
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var responseContent = await response.Content.ReadAsStringAsync();
-            Log.Information($"Node {peerToSendConnection.IPAddress}:{peerToSendConnection.Port} successfully broadcasted my presence.");
-            var peerList = JsonSerializer.Deserialize<List<PeerLib>>(responseContent, options)!;
-            await _peerData.AddPeersToWorkingAndKnownPeersInBulkAsync(peerList);
+            var connection = new HubConnectionBuilder()
+                .WithUrl($"http://{peerToConnect.IPAddress}:{peerToConnect.Port}/blockchainHub")
+                .WithAutomaticReconnect()
+                .Build();
+
+            connection.On<List<PeerLib>>("ReceiveKnownPeers", async (peers) =>
+            {
+                Log.Information($"Received list of {peers.Count} known peers");
+                var connectTasks = new List<Task>();
+                
+                foreach (var peer in peers.Where(p => 
+                    p.IPAddress != thisNode.IPAddress || p.Port != thisNode.Port))
+                {
+                    await _peerData.AddPeerToKnownPeersAsync(peer);
+                    connectTasks.Add(ConnectWithPeerNetworkAsync(peer));
+                }
+                
+                await Task.WhenAll(connectTasks);
+            });
+
+            connection.On<PeerLib>("PeerJoined", async (peer) =>
+            {
+                if (peer.IPAddress != thisNode.IPAddress || peer.Port != thisNode.Port)
+                {
+                    await _peerData.AddPeerToKnownPeersAsync(peer);
+                    await _peerData.AddPeerToWorkingPeersAsync(peer);
+                    Log.Information($"New peer joined: {peer.IPAddress}:{peer.Port}");
+                }
+            });
+            
+            await connection.StartAsync();
+            
+            lock (_connectionsLock)
+            {
+                _connections[connectionKey] = connection;
+            }
+
+            await connection.InvokeAsync("RegisterPeer", thisNode);
+
+            peerToConnect.ConnectionId = connection.ConnectionId;
+            await _peerData.AddPeerToKnownPeersAsync(peerToConnect);
+            await _peerData.AddPeerToWorkingPeersAsync(peerToConnect);
+
+            Log.Information($"Successfully connected to peer {connectionKey}");
             return true;
         }
-        else
+        catch (Exception ex)
         {
-            Log.Error($"Node {peerToSendConnection.IPAddress}:{peerToSendConnection.Port} failed to broadcasted my presence.");
+            Log.Error($"Failed to connect to peer {connectionKey}: {ex.Message}");
             return false;
         }
     }
 
-    public async Task<List<PeerLib>> RegisterAndBroadcastNewPeerAsync(PeerLib peerToRegisterAndBroadcast, List<PeerLib> alreadyInformedPeers)
+    public async Task RegisterPeerAsync(PeerLib peer, string connectionId)
     {
-        var workingPeerList = await _peerData.GetAllWorkingPeersAsync();
+        peer.ConnectionId = connectionId;
+        await _peerData.AddPeerToKnownPeersAsync(peer);
+        await _peerData.AddPeerToWorkingPeersAsync(peer);
         
-        await _peerData.AddPeerToKnownPeersAsync(peerToRegisterAndBroadcast); // TODO; dodac blokade wrzucania dwa razy tego samego
-        await _peerData.AddPeerToWorkingPeersAsync(peerToRegisterAndBroadcast);
+        var knownPeers = await _peerData.GetAllKnownPeersAsync();
+        await BroadcastToPeers("ReceiveKnownPeers", knownPeers);
+        
+        Log.Information($"Successfully registered new peer with IP address: {peer.IPAddress} and port number: {peer.Port}");
+    }
 
-        var workingPeerToSendList = workingPeerList.Except(alreadyInformedPeers).ToList();
-
-        var totalInformedPeers = alreadyInformedPeers.Union(workingPeerList).ToList();
-        var thisNode = await _peerData.GetThisPeerInfoAsync();
-        totalInformedPeers.Add(thisNode);
-        if(workingPeerToSendList.Count > 0)
+    public async Task RemovePeerAsync(string connectionId)
+    {
+        var peer = await _peerData.GetPeerByConnectionIdAsync(connectionId);
+        if (peer != null)
         {
-            await Parallel.ForEachAsync(workingPeerList, async (peer, cancellationToken) =>
+            await _peerData.DeletePeerFromWorkingPeersAsync(peer.IPAddress, peer.Port);
+            lock (_connectionsLock)
             {
-                HttpClientHandler handler = new HttpClientHandler();
-                handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
-                using var httpClient = new HttpClient(handler);
-
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-
-                var payload = new RegisterAndBroadcastNewPeerRequest
-                {
-                    AlreadyInformedPeers = totalInformedPeers,
-                    PeerToRegisterAndBroadcast = peerToRegisterAndBroadcast,
-                };
-
-                var json = JsonSerializer.Serialize(payload, options);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var url = $"https://{peer.IPAddress}:{peer.Port}/PeerControler/RegisterAndBroadcastNewPeerAsync";
-
-                var response = await httpClient.PostAsync(url, content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"Successfully informed node {peer.IPAddress}:{peer.Port} about {peerToRegisterAndBroadcast.IPAddress}:{peerToRegisterAndBroadcast.Port}");
-                }
-                else
-                {
-                    Console.WriteLine($"Failed to inform node {peer.IPAddress}:{peer.Port} about {peerToRegisterAndBroadcast.IPAddress}:{peerToRegisterAndBroadcast.Port}");
-                }
-            });
+                _connections.Remove(peer.IPAddress + ":" + peer.Port);
+            }
+            Log.Information($"Peer disconnected: {peer.IPAddress}:{peer.Port}");
         }
-        else
+    }
+
+    public async Task BroadcastToPeers<T>(string method, T data)
+    {
+        var tasks = new List<Task>();
+        
+        lock (_connectionsLock)
         {
-            Console.WriteLine("All peers have been informed.");
+            foreach (var connection in _connections.Values)
+            {
+                if (connection.State == HubConnectionState.Connected)
+                {
+                    tasks.Add(connection.InvokeAsync(method, data).ContinueWith(t =>
+                    {
+                        if (t.IsFaulted)
+                        {
+                            Log.Error($"Failed to broadcast {method}: {t.Exception?.GetBaseException().Message}");
+                        }
+                    }));
+                }
+            }
         }
 
-        return workingPeerList;
+        await Task.WhenAll(tasks);
+    }
+
+    public async Task<List<PeerLib>> GetKnownPeersAsync()
+    {
+        return await _peerData.GetAllKnownPeersAsync();
+    }
+
+    public async Task RegisterPeersAsync(List<PeerLib> peers)
+    {
+        if (peers == null || !peers.Any())
+        {
+            return;
+        }
+
+        var thisNode = await _peerData.GetThisPeerInfoAsync();
+        
+        foreach (var peer in peers)
+        {
+            // Pomijamy samego siebie
+            if (peer.IPAddress == thisNode.IPAddress && peer.Port == thisNode.Port)
+            {
+                continue;
+            }
+
+            await _peerData.AddPeerToKnownPeersAsync(peer);
+            await _peerData.AddPeerToWorkingPeersAsync(peer);
+            
+            // Próbujemy nawiązać połączenie z nowym peerem
+            await ConnectWithPeerNetworkAsync(peer);
+        }
+
+        Log.Information($"Zarejestrowano {peers.Count} nowych peerów");
     }
 }
