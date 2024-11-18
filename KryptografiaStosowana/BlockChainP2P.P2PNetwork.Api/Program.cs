@@ -26,8 +26,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddPersistenceData();
-builder.Services.AddP2PManagers();
-builder.Services.AddBlockChainManagers();
+builder.Services.AddP2PTransientManagers();
 builder.Services.AddSignalR();
 
 var app = builder.Build();
