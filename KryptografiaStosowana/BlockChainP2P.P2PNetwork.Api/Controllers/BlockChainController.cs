@@ -19,6 +19,7 @@ public class BlockChainController : ControllerBase
         IBlockChainData blockChainData)
     {
         _blockChainManager = blockChainManager;
+        _blockChainData = blockChainData;
     }
 
     /// <summary>

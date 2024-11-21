@@ -11,6 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace BlockChainP2P.P2PNetwork.Api.Manager;
 
@@ -20,11 +21,14 @@ internal class BlockChainManager : IBlockChainManager
     private static readonly short DIFFICULTY_ADJUSTMENT_INTERVAL = 10; // blocks
 
     private readonly IBlockChainData _blockChainData;
+    private readonly IPeerManager _peerManager;
 
-    public BlockChainManager(IBlockChainData blockChainData)
+    public BlockChainManager(IBlockChainData blockChainData, IPeerManager peerManager)
     {
         _blockChainData = blockChainData 
             ?? throw new ArgumentNullException(nameof(blockChainData));
+        _peerManager = peerManager
+            ?? throw new ArgumentNullException(nameof(peerManager));
     }
 
     public async Task<BlockLib> GenerateNextBlockAsync(string blockData) // what if 2 threads create new block at the same time with same ids and one will write first?
@@ -33,15 +37,53 @@ internal class BlockChainManager : IBlockChainManager
         var blockChain = await _blockChainData.GetBlockChainAsync();
         var nextIndex = latestBlock.Index + 1;
         var nextTimestamp = DateTime.Now;
-        var newBlock = FindBlock(nextIndex, latestBlock.PreviousHash, nextTimestamp, blockData, GetDifficulty(blockChain, latestBlock));
+        var newBlock = FindBlock(nextIndex, latestBlock.Hash, nextTimestamp, blockData, GetDifficulty(blockChain, latestBlock));
 
         if (ValidateNewBlock(newBlock, latestBlock))
         {
             await _blockChainData.AddBlockToBlockChainAsync(newBlock);
-            //BroadcastNewBlock();
+            await BroadcastNewBlockAsync(newBlock);
         }
 
         return newBlock;
+    }
+
+    public async Task BroadcastNewBlockAsync(BlockLib newBlock)
+    {
+        //TODO: wyniesc brodkast do jakiegos signal managera
+        await _peerManager.BroadcastToPeers("ReceiveNewBlock", newBlock);
+    }
+
+    public async Task ReceiveNewBlockAsync(BlockLib newBlock)
+    {
+        Log.Information($"Otrzymano nowy blok o indeksie {newBlock.Index}");
+        var latestBlock = await _blockChainData.GetHighestIndexBlockAsync();
+        
+        // TODO: Block Validation
+        // Sprawdź, czy otrzymany blok jest następny w kolejności
+        if (newBlock.Index == latestBlock.Index + 1)
+        {
+            if (ValidateNewBlock(newBlock, latestBlock))
+            {
+                await _blockChainData.AddBlockToBlockChainAsync(newBlock);
+                await BroadcastNewBlockAsync(newBlock);
+                Log.Information($"Otrzymano i dodano nowy prawidłowy blok o indeksie {newBlock.Index}");
+            }
+            else
+            {
+                Log.Error($"Otrzymany blok {newBlock.Index} jest nieprawidłowy");
+            }
+        }
+        // Jeśli otrzymany blok jest dalej w przyszłości, może brakować nam bloków
+        else if (newBlock.Index > latestBlock.Index + 1)
+        {
+            Log.Information("Otrzymano blok z przyszłości - potrzebne zaktualizowanie łańcucha");
+            // TODO: Zaimplementować żądanie brakujących bloków
+        }
+        else
+        {
+            Log.Information($"Otrzymano stary lub duplikat bloku o indeksie {newBlock.Index}");
+        }
     }
 
     public async void ReplaceBlockChain(List<BlockLib> newBlockChain)
@@ -49,7 +91,7 @@ internal class BlockChainManager : IBlockChainManager
         var currentBlockChain = await _blockChainData.GetBlockChainAsync();
         var genesisBlock = await _blockChainData.GetGenesisBlockAsync();
 
-        if (ValidateBlockChain(newBlockChain, genesisBlock) && newBlockChain.Count > currentBlockChain.Count())
+        if (currentBlockChain.Count() == 0 ||(ValidateBlockChain(newBlockChain, genesisBlock) && newBlockChain.Count > currentBlockChain.Count()))
         {
             Log.Error("Received blockchain is valid. Replacing current blockchain with received blockchain.");
             _blockChainData.SwapBlockChainsAsync(newBlockChain);
@@ -139,7 +181,7 @@ internal class BlockChainManager : IBlockChainManager
 
     private bool ValidateNewBlock(BlockLib newBlock, BlockLib previousBlock)
     {
-        if (ValidateBlockStructure(newBlock))
+        if (!ValidateBlockStructure(newBlock))
         {
             Log.Error("Invalid structure.");
             return false;
@@ -235,4 +277,39 @@ internal class BlockChainManager : IBlockChainManager
             newBlock.Timestamp.AddSeconds(-60) < DateTime.Now;
     }
     #endregion Validators
+
+    public async Task CreateGenesisBlockAsync()
+    {
+        var existingGenesis = await _blockChainData.GetGenesisBlockAsync();
+        if (existingGenesis != null)
+        {
+            Log.Warning("Genesis block already exists");
+            return;
+        }
+        Log.Warning("zaczynam kopac");
+        var genesisBlock = new BlockLib(
+            index: 0,
+            hash: CalculateHash(0, "previous hash", DateTime.Now, "Genesis Block", 1, 0),
+            previousHash: "previous hash",
+            timestamp: DateTime.Now,
+            data: "Genesis Block",
+            difficulty: 1,
+            nonce: 0
+        );
+
+        await _blockChainData.AddBlockToBlockChainAsync(genesisBlock);
+        Log.Information("Genesis block created and added to blockchain");
+    }
+
+    public async Task RequestAndUpdateBlockchainAsync(HubConnection connection)
+    {
+        connection.On<IEnumerable<BlockLib>>("ReceiveBlockchain", (blockchain) =>
+        {
+            ReplaceBlockChain(blockchain.ToList());
+            Log.Information("Otrzymano i zaktualizowano blockchain od peera");
+        });
+
+        // await connection.StartAsync();
+        await connection.InvokeAsync("RequestBlockchain");
+    }
 }

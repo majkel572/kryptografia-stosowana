@@ -1,4 +1,5 @@
 ﻿using BlockChainP2P.P2PNetwork.Api.Lib.Model;
+using Microsoft.AspNetCore.SignalR.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,4 +12,8 @@ public interface IBlockChainManager
 {
     Task<BlockLib> GenerateNextBlockAsync(string blockData);
     void ReplaceBlockChain(List<BlockLib> newBlockChain);
+    Task BroadcastNewBlockAsync(BlockLib newBlock);
+    Task ReceiveNewBlockAsync(BlockLib newBlock);
+    Task CreateGenesisBlockAsync();
+    Task RequestAndUpdateBlockchainAsync(HubConnection connection);
 }

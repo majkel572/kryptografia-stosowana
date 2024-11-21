@@ -7,23 +7,39 @@ using Serilog;
 using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 using BlockChainP2P.P2PNetwork.Api.Lib.Request;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BlockChainP2P.P2PNetwork.Api.Manager;
 
 internal class PeerManager : IPeerManager
 {
     private readonly IPeerData _peerData;
-    private readonly Dictionary<string, HubConnection> _connections;
-    private readonly object _connectionsLock = new object();
+    private readonly IServiceProvider _serviceProvider;
+    private IBlockChainManager? _blockChainManager;
 
-    public PeerManager(IPeerData peerData)
+    public PeerManager(
+        IPeerData peerData,
+        IServiceProvider serviceProvider)
     {
         _peerData = peerData ?? throw new ArgumentNullException(nameof(peerData));
-        _connections = new Dictionary<string, HubConnection>();
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+    }
+
+    private IBlockChainManager BlockChainManager
+    {
+        get
+        {
+            if (_blockChainManager == null)
+            {
+                _blockChainManager = _serviceProvider.GetRequiredService<IBlockChainManager>();
+            }
+            return _blockChainManager;
+        }
     }
 
     public async Task<bool> ConnectWithPeerNetworkAsync(PeerLib peerToConnect)
     {
+        var connections = await _peerData.GetAllConnectionsAsync();
         var thisNode = await _peerData.GetThisPeerInfoAsync();
         if (peerToConnect.IPAddress == thisNode.IPAddress && peerToConnect.Port == thisNode.Port)
         {
@@ -32,13 +48,10 @@ internal class PeerManager : IPeerManager
         }
 
         string connectionKey = $"{peerToConnect.IPAddress}:{peerToConnect.Port}";
-        lock (_connectionsLock)
+        if (await _peerData.IsConnectedToPeer(connectionKey))
         {
-            if (_connections.ContainsKey(connectionKey))
-            {
-                Log.Information($"Already connected to peer {connectionKey}");
-                return true;
-            }
+            Log.Information($"Already connected to peer {connectionKey}");
+            return true;
         }
 
         try
@@ -68,25 +81,27 @@ internal class PeerManager : IPeerManager
                 if (peer.IPAddress != thisNode.IPAddress || peer.Port != thisNode.Port)
                 {
                     await _peerData.AddPeerToKnownPeersAsync(peer);
-                    await _peerData.AddPeerToWorkingPeersAsync(peer);
                     Log.Information($"New peer joined: {peer.IPAddress}:{peer.Port}");
                 }
             });
+
+            connection.On<BlockLib>("ReceiveNewBlock", async (block) =>
+            {
+                Log.Information($"Received new block with index {block.Index}");
+                await _blockChainManager.ReceiveNewBlockAsync(block);
+            });
             
             await connection.StartAsync();
-            
-            lock (_connectionsLock)
-            {
-                _connections[connectionKey] = connection;
-            }
 
             await connection.InvokeAsync("RegisterPeer", thisNode);
 
             peerToConnect.ConnectionId = connection.ConnectionId;
             await _peerData.AddPeerToKnownPeersAsync(peerToConnect);
-            await _peerData.AddPeerToWorkingPeersAsync(peerToConnect);
+            await _peerData.AddHubConnection(connectionKey, connection);
 
             Log.Information($"Successfully connected to peer {connectionKey}");
+
+            await _blockChainManager.RequestAndUpdateBlockchainAsync(connection);
             return true;
         }
         catch (Exception ex)
@@ -96,11 +111,14 @@ internal class PeerManager : IPeerManager
         }
     }
 
-    public async Task RegisterPeerAsync(PeerLib peer, string connectionId)
+    public async Task RegisterPeerAsync(PeerLib peer)
     {
-        peer.ConnectionId = connectionId;
+        var connection = new HubConnectionBuilder()
+                .WithUrl($"http://{peer.IPAddress}:{peer.Port}/blockchainHub")
+                .WithAutomaticReconnect()
+                .Build();
+        
         await _peerData.AddPeerToKnownPeersAsync(peer);
-        await _peerData.AddPeerToWorkingPeersAsync(peer);
         
         var knownPeers = await _peerData.GetAllKnownPeersAsync();
         await BroadcastToPeers("ReceiveKnownPeers", knownPeers);
@@ -110,39 +128,31 @@ internal class PeerManager : IPeerManager
 
     public async Task RemovePeerAsync(string connectionId)
     {
-        var peer = await _peerData.GetPeerByConnectionIdAsync(connectionId);
-        if (peer != null)
-        {
-            await _peerData.DeletePeerFromWorkingPeersAsync(peer.IPAddress, peer.Port);
-            lock (_connectionsLock)
-            {
-                _connections.Remove(peer.IPAddress + ":" + peer.Port);
-            }
-            Log.Information($"Peer disconnected: {peer.IPAddress}:{peer.Port}");
-        }
+        await _peerData.RemoveHubConnection(connectionId);
+        Log.Information($"Peer disconnected: {connectionId}");
     }
 
     public async Task BroadcastToPeers<T>(string method, T data)
     {
+        var connections = await _peerData.GetAllConnectionsAsync();
+        Log.Information($"Broadcasting {method} to {connections.Count} peers {string.Join(", ", connections.Keys)}");
         var tasks = new List<Task>();
         
-        lock (_connectionsLock)
+        // lock (_connectionsLock) czy jest tu potrzebny?
+        foreach (var connection in connections.Values)
         {
-            foreach (var connection in _connections.Values)
+            if (connection.State == HubConnectionState.Connected)
             {
-                if (connection.State == HubConnectionState.Connected)
+                Log.Information($"Sending {method} to {connection.ConnectionId}");
+                tasks.Add(connection.InvokeAsync(method, data).ContinueWith(t =>
                 {
-                    tasks.Add(connection.InvokeAsync(method, data).ContinueWith(t =>
+                    if (t.IsFaulted)
                     {
-                        if (t.IsFaulted)
-                        {
-                            Log.Error($"Failed to broadcast {method}: {t.Exception?.GetBaseException().Message}");
-                        }
-                    }));
-                }
+                        Log.Error($"Failed to broadcast {method}: {t.Exception?.GetBaseException().Message}");
+                    }
+                }));
             }
         }
-
         await Task.WhenAll(tasks);
     }
 
@@ -169,7 +179,6 @@ internal class PeerManager : IPeerManager
             }
 
             await _peerData.AddPeerToKnownPeersAsync(peer);
-            await _peerData.AddPeerToWorkingPeersAsync(peer);
             
             // Próbujemy nawiązać połączenie z nowym peerem
             await ConnectWithPeerNetworkAsync(peer);

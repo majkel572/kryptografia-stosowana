@@ -8,6 +8,7 @@ using BlockChainP2P.P2PNetwork.Api.Hubs;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Json;
+using Microsoft.AspNetCore.SignalR.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +19,7 @@ Console.WriteLine("port: " + builder.Configuration.GetSection("NodePort").Value!
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .MinimumLevel.Information()
+    .MinimumLevel.Warning()
     .CreateLogger();
 
 builder.Services.AddControllers();
@@ -71,9 +72,6 @@ if (args[0]!="init")
             {
                 var resText = $"Successfully registered new peer with IP address: {peerInNetwork.IPAddress} and port number: {peerInNetwork.Port}";
                 Log.Information(resText);
-                var blockChainManager = services.GetRequiredService<IBlockChainManager>();
-                // TODO get blockchain
-                
             }
         }
         catch (Exception ex)
@@ -84,7 +82,13 @@ if (args[0]!="init")
 }
 else
 {
-    // create here genesis block
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        var blockChainManager = services.GetRequiredService<IBlockChainManager>();
+        
+        await blockChainManager.CreateGenesisBlockAsync();
+    }
 }
 
 app.Run();
