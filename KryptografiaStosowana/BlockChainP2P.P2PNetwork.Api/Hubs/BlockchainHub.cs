@@ -53,11 +53,6 @@ public class BlockchainHub : Hub
         _blockChainManager.ReplaceBlockChain(blockchain.ToList());
     }
 
-    public async Task BrodcastMessageFromHub(string method, object data)
-    {
-        await Clients.All.SendAsync(method, data);
-    }
-
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         await _peerManager.RemovePeerAsync(Context.ConnectionId);
