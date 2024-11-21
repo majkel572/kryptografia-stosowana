@@ -1,11 +1,14 @@
 using BlockChainP2P.P2PNetwork.Api.Lib;
+using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 using BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
 using BlockChainP2P.P2PNetwork.Api.Manager.ServiceHelpers;
 using BlockChainP2P.P2PNetwork.Api.Middlewares;
 using BlockChainP2P.P2PNetwork.Api.Persistence.ServiceHelpers;
+using BlockChainP2P.P2PNetwork.Api.Hubs;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Json;
+using Microsoft.AspNetCore.SignalR.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +19,7 @@ Console.WriteLine("port: " + builder.Configuration.GetSection("NodePort").Value!
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .MinimumLevel.Information()
+    .MinimumLevel.Warning()
     .CreateLogger();
 
 builder.Services.AddControllers();
@@ -24,8 +27,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddPersistenceData();
-builder.Services.AddP2PManagers();
-
+builder.Services.AddP2PTransientManagers();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -36,15 +39,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHsts();
+// app.UseHsts();
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.UseMiddleware<ExceptionHandlerMiddleware>();
+
+app.MapHub<BlockchainHub>("/blockchainHub");
 
 if (args[0]!="init")
 {
@@ -59,7 +64,7 @@ if (args[0]!="init")
             var peerInNetwork = new PeerLib
             {
                 IPAddress = args[0],
-                Port = "8081",
+                Port = "8080",
             };
 
             var result = await peerManager.ConnectWithPeerNetworkAsync(peerInNetwork);
@@ -73,6 +78,16 @@ if (args[0]!="init")
         {
             Log.Error("An error occurred while connecting to the peer network: {Error}", ex.Message);
         }
+    }
+}
+else
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        var blockChainManager = services.GetRequiredService<IBlockChainManager>();
+        
+        await blockChainManager.CreateGenesisBlockAsync();
     }
 }
 

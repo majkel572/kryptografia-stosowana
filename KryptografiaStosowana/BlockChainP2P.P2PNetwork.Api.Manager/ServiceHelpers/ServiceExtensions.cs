@@ -10,10 +10,12 @@ namespace BlockChainP2P.P2PNetwork.Api.Manager.ServiceHelpers;
 
 public static class ServiceExtensions
 {
-    public static IServiceCollection AddP2PManagers(this IServiceCollection services)
+    public static IServiceCollection AddP2PTransientManagers(this IServiceCollection services)
     {
         services
             .AddTransient<IPeerManager, PeerManager>();
+        services
+            .AddTransient<IBlockChainManager, BlockChainManager>();
         return services;
     }
 }

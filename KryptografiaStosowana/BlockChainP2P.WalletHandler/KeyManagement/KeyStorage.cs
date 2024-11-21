@@ -43,27 +43,29 @@ public class KeyStorage
 
     private string EncryptPrivateKey(string privateKey)
     {
-        using (Aes aes = Aes.Create())
+        byte[] salt = GenerateRandomBytes(16);
+        using (var keyDerivationFunction = new Rfc2898DeriveBytes(_encryptionKey, salt, 10000, HashAlgorithmName.SHA256))
         {
-            byte[] salt = GenerateRandomBytes(16); 
-            using (var keyDerivationFunction = new Rfc2898DeriveBytes(_encryptionKey, salt, 10000, HashAlgorithmName.SHA256))
+            byte[] key = keyDerivationFunction.GetBytes(32);
+            byte[] nonce = GenerateRandomBytes(12); // AesGcm używa nonce zamiast IV
+            byte[] plaintext = Encoding.UTF8.GetBytes(privateKey);
+            byte[] ciphertext = new byte[plaintext.Length];
+            byte[] tag = new byte[16]; // Tag uwierzytelniający
+
+            using (var newAes = new AesGcm(key, 16))
             {
-                aes.Key = keyDerivationFunction.GetBytes(32);
-                aes.GenerateIV(); 
+                newAes.Encrypt(nonce, plaintext, ciphertext, tag);
+            }
 
-                ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    ms.Write(salt, 0, salt.Length); 
-                    ms.Write(aes.IV, 0, aes.IV.Length); 
-                    using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-                    using (StreamWriter writer = new StreamWriter(cs))
-                    {
-                        writer.Write(privateKey);
-                    }
+            // Łączymy wszystkie komponenty w jeden ciąg bajtów
+            using (var ms = new MemoryStream())
+            {
+                ms.Write(salt, 0, salt.Length);
+                ms.Write(nonce, 0, nonce.Length);
+                ms.Write(tag, 0, tag.Length);
+                ms.Write(ciphertext, 0, ciphertext.Length);
 
-                    return Convert.ToBase64String(ms.ToArray());
-                }
+                return Convert.ToBase64String(ms.ToArray());
             }
         }
     }
@@ -78,30 +80,33 @@ public class KeyStorage
         return randomBytes;
     }
 
-
     private string DecryptPrivateKey(string encryptedPrivateKey)
     {
         byte[] fullCipher = Convert.FromBase64String(encryptedPrivateKey);
 
-        using (MemoryStream ms = new MemoryStream(fullCipher))
+        using (var ms = new MemoryStream(fullCipher))
         {
             byte[] salt = new byte[16];
-            ms.Read(salt, 0, salt.Length); 
+            ms.Read(salt, 0, salt.Length);
 
-            byte[] iv = new byte[16];
-            ms.Read(iv, 0, iv.Length);
+            byte[] nonce = new byte[12];
+            ms.Read(nonce, 0, nonce.Length);
 
-            using (Aes aes = Aes.Create())
+            byte[] tag = new byte[16];
+            ms.Read(tag, 0, tag.Length);
+
+            byte[] ciphertext = new byte[ms.Length - ms.Position];
+            ms.Read(ciphertext, 0, ciphertext.Length);
+
             using (var keyDerivationFunction = new Rfc2898DeriveBytes(_encryptionKey, salt, 10000, HashAlgorithmName.SHA256))
             {
-                aes.Key = keyDerivationFunction.GetBytes(32);
-                aes.IV = iv;
+                byte[] key = keyDerivationFunction.GetBytes(32);
+                byte[] plaintext = new byte[ciphertext.Length];
 
-                ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-                using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
-                using (StreamReader reader = new StreamReader(cs))
+                using (var aes = new AesGcm(key, 16))
                 {
-                    return reader.ReadToEnd();
+                    aes.Decrypt(nonce, ciphertext, tag, plaintext);
+                    return Encoding.UTF8.GetString(plaintext);
                 }
             }
         }
