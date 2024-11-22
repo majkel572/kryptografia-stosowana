@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using Microsoft.AspNetCore.SignalR.Client;
+using System.Runtime.CompilerServices;
 
 namespace BlockChainP2P.P2PNetwork.Api.Manager;
 
@@ -19,7 +20,7 @@ internal class BlockChainManager : IBlockChainManager
 {
     private static readonly short BLOCK_GENERATION_INTERVAL = 10; // seconds
     private static readonly short DIFFICULTY_ADJUSTMENT_INTERVAL = 10; // blocks
-
+    private readonly object _blockchainLock = new object();
     private readonly IBlockChainData _blockChainData;
     private readonly IPeerManager _peerManager;
 
@@ -58,7 +59,10 @@ internal class BlockChainManager : IBlockChainManager
     {
         Log.Information($"Otrzymano nowy blok o indeksie {newBlock.Index}");
         var latestBlock = await _blockChainData.GetHighestIndexBlockAsync();
-        
+        // lock (_blockchainLock) {
+        //     var latestBlock = await _blockChainData.GetHighestIndexBlockAsync();
+        //     var validationResult = ValidateNewBlock(newBlock, latestBlock);
+        // }
         // TODO: Block Validation
         // Sprawdź, czy otrzymany blok jest następny w kolejności
         if (newBlock.Index == latestBlock.Index + 1)
@@ -286,7 +290,6 @@ internal class BlockChainManager : IBlockChainManager
             Log.Warning("Genesis block already exists");
             return;
         }
-        Log.Warning("zaczynam kopac");
         var genesisBlock = new BlockLib(
             index: 0,
             hash: CalculateHash(0, "previous hash", DateTime.Now, "Genesis Block", 1, 0),

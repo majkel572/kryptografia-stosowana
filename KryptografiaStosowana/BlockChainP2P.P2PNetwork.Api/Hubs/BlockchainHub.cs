@@ -26,10 +26,14 @@ public class BlockchainHub : Hub
         var knownPeers = await _peerManager.GetKnownPeersAsync();
         
         // Wyślij listę znanych peerów do nowego peera
-        await Clients.Caller.SendAsync("ReceiveKnownPeers", knownPeers);
+        // await Clients.Caller.SendAsync("ReceiveKnownPeers", knownPeers);
         
-        // Powiadom innych o nowym peerze
-        await Clients.Others.SendAsync("PeerJoined", peer);
+        // // Powiadom innych o nowym peerze
+        // await Clients.Others.SendAsync("PeerJoined", peer);
+    }
+
+    public async Task RequestConnectionWithPeer(PeerLib peer) {
+        await _peerManager.RequestConnectionWithPeerAsync(peer);
     }
 
     public async Task ReceiveKnownPeers(List<PeerLib> peers)

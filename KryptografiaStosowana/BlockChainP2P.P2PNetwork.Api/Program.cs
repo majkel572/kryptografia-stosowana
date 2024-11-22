@@ -19,7 +19,7 @@ Console.WriteLine("port: " + builder.Configuration.GetSection("NodePort").Value!
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .MinimumLevel.Warning()
+    .MinimumLevel.Information()
     .CreateLogger();
 
 builder.Services.AddControllers();
