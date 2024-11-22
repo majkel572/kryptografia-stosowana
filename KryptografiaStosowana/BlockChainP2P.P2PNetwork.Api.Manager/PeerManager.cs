@@ -61,35 +61,7 @@ internal class PeerManager : IPeerManager
                 .WithAutomaticReconnect()
                 .Build();
 
-            connection.On<List<PeerLib>>("ReceiveKnownPeers", async (peers) =>
-            {
-                Log.Information($"Received list of {peers.Count} known peers");
-                var connectTasks = new List<Task>();
-                
-                foreach (var peer in peers.Where(p => 
-                    p.IPAddress != thisNode.IPAddress || p.Port != thisNode.Port))
-                {
-                    await _peerData.AddPeerToKnownPeersAsync(peer);
-                    connectTasks.Add(ConnectWithPeerNetworkAsync(peer));
-                }
-                
-                await Task.WhenAll(connectTasks);
-            });
-
-            connection.On<PeerLib>("PeerJoined", async (peer) =>
-            {
-                if (peer.IPAddress != thisNode.IPAddress || peer.Port != thisNode.Port)
-                {
-                    await _peerData.AddPeerToKnownPeersAsync(peer);
-                    Log.Information($"New peer joined: {peer.IPAddress}:{peer.Port}");
-                }
-            });
-
-            connection.On<BlockLib>("ReceiveNewBlock", async (block) =>
-            {
-                Log.Information($"Received new block with index {block.Index}");
-                await _blockChainManager.ReceiveNewBlockAsync(block);
-            });
+            AdjustConnection(connection, thisNode);
             
             await connection.StartAsync();
 
@@ -110,7 +82,87 @@ internal class PeerManager : IPeerManager
             return false;
         }
     }
+#region PrivateCon
+    // wyniosłem tutaj żeby było wygodniej, dodałem do PeerJoined metodę odpowiedzialną za połączenie innych nodów z nowym nodem
+    private void AdjustConnection(HubConnection connection, PeerLib thisNode)
+    {
+        connection.On<List<PeerLib>>("ReceiveKnownPeers", async (peers) =>
+        {
+            Log.Information($"Received list of {peers.Count} known peers");
+            var connectTasks = new List<Task>();
 
+            foreach (var peer in peers.Where(p =>
+                p.IPAddress != thisNode.IPAddress || p.Port != thisNode.Port))
+            {
+                await _peerData.AddPeerToKnownPeersAsync(peer);
+                connectTasks.Add(ConnectWithPeerNetworkAsync(peer));
+            }
+
+            await Task.WhenAll(connectTasks);
+        });
+
+        connection.On<PeerLib>("PeerJoined", async (peerToConnectTo) =>
+        {
+            if (peerToConnectTo.IPAddress != thisNode.IPAddress || peerToConnectTo.Port != thisNode.Port)
+            {
+                await _peerData.AddPeerToKnownPeersAsync(peerToConnectTo);
+                await ConnectToNewPeerAsync(peerToConnectTo); // to nowe, nie jestem pewien czy tu definiujemy metody dla huba odbierającego czy dla tego co się z nim łączymy
+                                                              // ta metoda musi być w miejscu takim, że od razu po otrzymaniu info przez noda że jest nowy peer to to powinno
+                                                              // się zrobić automatycznie.
+                Log.Information($"New peer joined: {peerToConnectTo.IPAddress}:{peerToConnectTo.Port}");
+            }
+        });
+
+        connection.On<BlockLib>("ReceiveNewBlock", async (block) =>
+        {
+            Log.Information($"Received new block with index {block.Index}");
+            await _blockChainManager.ReceiveNewBlockAsync(block);
+        });
+    }
+
+    private async Task ConnectToNewPeerAsync(PeerLib peerToConnectTo)
+    {
+        var thisNode = await _peerData.GetThisPeerInfoAsync();
+        if (peerToConnectTo.IPAddress == thisNode.IPAddress && peerToConnectTo.Port == thisNode.Port)
+        {
+            Log.Information("Skipping connection attempt to self");
+            return;
+        }
+
+        string connectionKey = $"{peerToConnectTo.IPAddress}:{peerToConnectTo.Port}";
+        if (await _peerData.IsConnectedToPeer(connectionKey))
+        {
+            Log.Information($"Already connected to peer {connectionKey}");
+            return;
+        }
+
+        try
+        {
+            var connection = new HubConnectionBuilder()
+                .WithUrl($"http://{peerToConnectTo.IPAddress}:{peerToConnectTo.Port}/blockchainHub")
+                .WithAutomaticReconnect()
+                .Build();
+            //Trochę nie kumam co się dzieje w tym hubie, należy wrzucić tą metodę (ConnectToNewPeerAsync)
+            //łączenia do nowego peera w miejsce gdzie istniejący w sieci peer
+            //dostaje info o nowym peerze. Wtedy przygotowuje connecta do jego huba i po prostu robi connection.StartAsync() i zapisuje do swoich hubconnection
+            AdjustConnection(connection, thisNode);
+
+            await connection.StartAsync();
+
+            peerToConnectTo.ConnectionId = connection.ConnectionId;
+            await _peerData.AddHubConnection(connectionKey, connection);
+
+            Log.Information($"Successfully connected to peer {connectionKey}");
+            return;
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Failed to connect to peer {connectionKey}: {ex.Message}");
+            return;
+        }
+    }
+
+#endregion PrivateCon
     public async Task RegisterPeerAsync(PeerLib peer)
     {
         var connection = new HubConnectionBuilder()
