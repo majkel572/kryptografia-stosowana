@@ -13,7 +13,7 @@ public interface IBlockChainManager
     Task<BlockLib> GenerateNextBlockAsync(string blockData);
     void ReplaceBlockChain(List<BlockLib> newBlockChain);
     Task BroadcastNewBlockAsync(BlockLib newBlock);
-    Task ReceiveNewBlockAsync(BlockLib newBlock);
+    Task ReceiveNewBlockAsync(BlockLib newBlock, string conId);
     Task CreateGenesisBlockAsync();
     Task RequestAndUpdateBlockchainAsync(HubConnection connection);
 }

@@ -79,6 +79,9 @@ internal class BlockChainManager : IBlockChainManager
         {
             Log.Information("Otrzymano blok z przyszłości - potrzebne zaktualizowanie łańcucha");
             // TODO: Zaimplementować żądanie brakujących bloków
+            // ta metoda ReceiveNewBlockAsync powinna otrzymać oprócz newBlock, connection hub od tego gostka co wysłał nowy blok, wtedy można go poprosić
+            // Clients.Client(connectionId).SendAsync("RequestBlockchain");
+            
         }
         else
         {

@@ -39,7 +39,11 @@ public class BlockchainHub : Hub
 
     public async Task ReceiveNewBlock(BlockLib newBlock)
     {
-        await _blockChainManager.ReceiveNewBlockAsync(newBlock);
+        var conId = Context.ConnectionId;
+        await _blockChainManager.ReceiveNewBlockAsync(newBlock, conId); // musimy tu podać id połączenia tego gostka co to przesłał,
+                                                                        // nie wiem czemu to jest ponownie definiowane
+                                                                        // w klasie peer manager, ok. linijki 116 - to Context.ConnectionId do testów,
+                                                                        // niestety mi nie idzie odpalić tego :(
     }
 
     public async Task RequestBlockchain()
