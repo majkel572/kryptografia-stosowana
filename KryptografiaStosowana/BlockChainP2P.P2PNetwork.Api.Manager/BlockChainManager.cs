@@ -55,12 +55,12 @@ internal class BlockChainManager : IBlockChainManager
         await _peerManager.BroadcastToPeers("ReceiveNewBlock", newBlock);
     }
 
-    public async Task ReceiveNewBlockAsync(BlockLib newBlock)
+    public async Task<bool> ReceiveNewBlockAsync(BlockLib newBlock)
     {
         Log.Information($"Otrzymano nowy blok o indeksie {newBlock.Index}");
         var latestBlock = await _blockChainData.GetHighestIndexBlockAsync();
         // lock (_blockchainLock) {
-        //     var latestBlock = await _blockChainData.GetHighestIndexBlockAsync();
+        //     var latestBlock = _blockChainData.GetHighestIndexBlockAsync().GetAwaiter().GetResult();
         //     var validationResult = ValidateNewBlock(newBlock, latestBlock);
         // }
         // TODO: Block Validation
@@ -72,21 +72,26 @@ internal class BlockChainManager : IBlockChainManager
                 await _blockChainData.AddBlockToBlockChainAsync(newBlock);
                 await BroadcastNewBlockAsync(newBlock);
                 Log.Information($"Otrzymano i dodano nowy prawidłowy blok o indeksie {newBlock.Index}");
+                return true;
             }
             else
             {
                 Log.Error($"Otrzymany blok {newBlock.Index} jest nieprawidłowy");
+                return true;
             }
         }
         // Jeśli otrzymany blok jest dalej w przyszłości, może brakować nam bloków
         else if (newBlock.Index > latestBlock.Index + 1)
         {
             Log.Information("Otrzymano blok z przyszłości - potrzebne zaktualizowanie łańcucha");
+            return false;
+            // await RequestAndUpdateBlockchainAsync();
             // TODO: Zaimplementować żądanie brakujących bloków
         }
         else
         {
             Log.Information($"Otrzymano stary lub duplikat bloku o indeksie {newBlock.Index}");
+            return true;
         }
     }
 
@@ -290,13 +295,14 @@ internal class BlockChainManager : IBlockChainManager
             Log.Warning("Genesis block already exists");
             return;
         }
+        Log.Information("Creating genesis block");
         var genesisBlock = new BlockLib(
             index: 0,
             hash: CalculateHash(0, "previous hash", DateTime.Now, "Genesis Block", 1, 0),
             previousHash: "previous hash",
             timestamp: DateTime.Now,
             data: "Genesis Block",
-            difficulty: 1,
+            difficulty: 2,
             nonce: 0
         );
 
