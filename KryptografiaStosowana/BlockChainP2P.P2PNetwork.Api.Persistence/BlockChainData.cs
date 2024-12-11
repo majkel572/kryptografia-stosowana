@@ -23,6 +23,9 @@ internal class BlockChainData : IBlockChainData
     {
         lock (_blockChainLock)
         {
+            if (_blockChain.Any(x => x.Index == block.Index)) {
+                return block;
+            }
             _blockChain.Add(block);
         }
         return block;
@@ -33,8 +36,9 @@ internal class BlockChainData : IBlockChainData
         return _blockChain.AsReadOnly();
     }
 
-    public async Task<BlockLib> GetHighestIndexBlockAsync()
-    {
+    public async Task<BlockLib> GetHighestIndexBlockAsync() => await Task.FromResult(GetHighestIndexBlock());
+
+    private BlockLib GetHighestIndexBlock() {
         lock (_blockChainLock)
         {
             return _blockChain.OrderByDescending(x => x.Index).FirstOrDefault()!;

@@ -8,13 +8,15 @@ namespace BlockChainP2P.P2PNetwork.Api.Hubs;
 public class BlockchainHub : Hub
 {
     private readonly IPeerManager _peerManager;
+    private readonly IPeerData _peerData;
     private readonly IBlockChainManager _blockChainManager;
     private readonly IBlockChainData _blockChainData;
-    public BlockchainHub(IPeerManager peerManager, IBlockChainManager blockChainManager, IBlockChainData blockChainData)
+    public BlockchainHub(IPeerManager peerManager, IBlockChainManager blockChainManager, IBlockChainData blockChainData, IPeerData peerData)
     {
         _peerManager = peerManager;
         _blockChainManager = blockChainManager;
         _blockChainData = blockChainData;
+        _peerData = peerData;
     }
 
     public async Task RegisterPeer(PeerLib peer)
@@ -26,10 +28,14 @@ public class BlockchainHub : Hub
         var knownPeers = await _peerManager.GetKnownPeersAsync();
         
         // Wyślij listę znanych peerów do nowego peera
-        await Clients.Caller.SendAsync("ReceiveKnownPeers", knownPeers);
+        // await Clients.Caller.SendAsync("ReceiveKnownPeers", knownPeers);
         
-        // Powiadom innych o nowym peerze
-        await Clients.Others.SendAsync("PeerJoined", peer);
+        // // Powiadom innych o nowym peerze
+        // await Clients.Others.SendAsync("PeerJoined", peer);
+    }
+
+    public async Task RequestConnectionWithPeer(PeerLib peer) {
+        await _peerManager.RequestConnectionWithPeerAsync(peer);
     }
 
     public async Task ReceiveKnownPeers(List<PeerLib> peers)
@@ -39,7 +45,17 @@ public class BlockchainHub : Hub
 
     public async Task ReceiveNewBlock(BlockLib newBlock)
     {
-        await _blockChainManager.ReceiveNewBlockAsync(newBlock);
+        var httpContext = Context.GetHttpContext();
+        var clientIp = httpContext?.Connection?.RemoteIpAddress?.ToString();
+        
+        var result =await _blockChainManager.ReceiveNewBlockAsync(newBlock);
+        if (!result && clientIp != null) {
+            string connectionKey = $"{clientIp}:8080";
+            var connection = await _peerData.GetHubConnection(connectionKey);
+            if (connection != null) {
+                await _blockChainManager.RequestAndUpdateBlockchainAsync(connection);
+            }
+        }
     }
 
     public async Task RequestBlockchain()
