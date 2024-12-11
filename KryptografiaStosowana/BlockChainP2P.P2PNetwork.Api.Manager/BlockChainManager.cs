@@ -116,6 +116,7 @@ internal class BlockChainManager : IBlockChainManager
 
     private BlockLib FindBlock(int index, string previousHash, DateTime timestamp, string data, int difficulty)
     {
+        // var flag = singletonForLatestBlock.BlockValue;
         int nonce = 0;
         while (true)
         {
@@ -125,6 +126,8 @@ internal class BlockChainManager : IBlockChainManager
                 return new BlockLib(index, hash, previousHash, timestamp, data, difficulty, nonce); // remember to broadcast it
             }
             nonce++;
+            // var flag2 = singletonForLatestBlock.BlockValue;
+            // check czy flaga sie zmieniła
         }
     }
 
