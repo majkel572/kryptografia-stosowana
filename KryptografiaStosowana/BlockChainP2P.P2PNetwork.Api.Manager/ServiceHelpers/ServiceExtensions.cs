@@ -12,10 +12,9 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddP2PTransientManagers(this IServiceCollection services)
     {
-        services
-            .AddTransient<IPeerManager, PeerManager>();
-        services
-            .AddTransient<IBlockChainManager, BlockChainManager>();
+        services.AddTransient<IPeerManager, PeerManager>();
+        services.AddTransient<IBlockChainManager, BlockChainManager>();
+        services.AddTransient<ITransactionManager, TransactionManager>();
         return services;
     }
 }

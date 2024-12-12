@@ -12,12 +12,9 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddPersistenceData(this IServiceCollection services)
     {
-        services
-            .AddSingleton<IPeerData, PeerData>()
-            ;
-        services
-            .AddSingleton<IBlockChainData, BlockChainData>()
-            ;
+        services.AddSingleton<IPeerData, PeerData>();
+        services.AddSingleton<IBlockChainData, BlockChainData>();
+        services.AddSingleton<IUnspentTransactionOutData, UnspentTransactionOutData>();
         return services;
     }
 }

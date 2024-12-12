@@ -7,19 +7,17 @@ namespace BlockChainP2P.WalletHandler.Test
     public class WalletTests
     {
         private Wallet _wallet;
-        private KeyGenerator _keyGenerator;
 
         public WalletTests()
         {
             _wallet = new Wallet();
-            _keyGenerator = new KeyGenerator();
         }
 
         [Fact]
         public void Should_Add_KeyPair_To_Wallet()
         {
             // Arrange
-            var keyPair = _keyGenerator.GenerateKeys();
+            var keyPair = KeyGenerator.GenerateKeys();
 
             // Act
             _wallet.AddKeyPair(keyPair);
@@ -33,8 +31,8 @@ namespace BlockChainP2P.WalletHandler.Test
         public void Should_Remove_KeyPair_From_Wallet()
         {
             // Arrange
-            var keyPair1 = _keyGenerator.GenerateKeys();
-            var keyPair2 = _keyGenerator.GenerateKeys();
+            var keyPair1 = KeyGenerator.GenerateKeys();
+            var keyPair2 = KeyGenerator.GenerateKeys();
             _wallet.AddKeyPair(keyPair1);
             _wallet.AddKeyPair(keyPair2);
 
@@ -51,8 +49,8 @@ namespace BlockChainP2P.WalletHandler.Test
         public void Should_Switch_Active_KeyPair_In_Wallet()
         {
             // Arrange
-            var keyPair1 = _keyGenerator.GenerateKeys();
-            var keyPair2 = _keyGenerator.GenerateKeys();
+            var keyPair1 = KeyGenerator.GenerateKeys();
+            var keyPair2 = KeyGenerator.GenerateKeys();
             _wallet.AddKeyPair(keyPair1);
             _wallet.AddKeyPair(keyPair2);
 
@@ -67,7 +65,7 @@ namespace BlockChainP2P.WalletHandler.Test
         public void Should_Sign_Transaction_With_Active_KeyPair()
         {
             // Arrange
-            var keyPair = _keyGenerator.GenerateKeys();
+            var keyPair = KeyGenerator.GenerateKeys();
             _wallet.AddKeyPair(keyPair);
             var transactionData = "Sample transaction data";
 
@@ -95,8 +93,8 @@ namespace BlockChainP2P.WalletHandler.Test
         public async Task Should_Handle_Multiple_Concurrent_Transaction_Signing()
         {
             // Arrange
-            var keyPair1 = _keyGenerator.GenerateKeys();
-            var keyPair2 = _keyGenerator.GenerateKeys();
+            var keyPair1 = KeyGenerator.GenerateKeys();
+            var keyPair2 = KeyGenerator.GenerateKeys();
             _wallet.AddKeyPair(keyPair1);
             _wallet.AddKeyPair(keyPair2);
 
@@ -126,8 +124,8 @@ namespace BlockChainP2P.WalletHandler.Test
         public async Task Should_Handle_Concurrent_Transactions_With_KeyPair_Switching()
         {
             // Arrange
-            var keyPair1 = _keyGenerator.GenerateKeys();
-            var keyPair2 = _keyGenerator.GenerateKeys();
+            var keyPair1 = KeyGenerator.GenerateKeys();
+            var keyPair2 = KeyGenerator.GenerateKeys();
             _wallet.AddKeyPair(keyPair1);
             _wallet.AddKeyPair(keyPair2);
 

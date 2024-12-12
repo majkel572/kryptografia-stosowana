@@ -10,7 +10,6 @@ namespace WalletDemo
         static void Main(string[] args)
         {
             Wallet wallet = new Wallet();
-            KeyGenerator keyGenerator = new KeyGenerator();
             KeyStorage keyStorage = new KeyStorage("SampleEncryptionKey1234");
 
             while (true)
@@ -30,7 +29,7 @@ namespace WalletDemo
                 switch (input)
                 {
                     case "1":
-                        CreateNewKeyPair(wallet, keyGenerator);
+                        CreateNewKeyPair(wallet);
                         break;
                     case "2":
                         ListPublicKeys(wallet);
@@ -59,9 +58,9 @@ namespace WalletDemo
             }
         }
 
-        private static void CreateNewKeyPair(Wallet wallet, KeyGenerator keyGenerator)
+        private static void CreateNewKeyPair(Wallet wallet)
         {
-            var keyPair = keyGenerator.GenerateKeys();
+            var keyPair = KeyGenerator.GenerateKeys();
             wallet.AddKeyPair(keyPair);
             Console.WriteLine("New key pair created and added to wallet.");
         }

@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace BlockChainP2P.WalletHandler.KeyManagement
 {
-    public class KeyGenerator
+    public static class KeyGenerator
     {
-        public KeyPair GenerateKeys()
+        public static KeyPair GenerateKeys()
         {
             using (ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256))
             {

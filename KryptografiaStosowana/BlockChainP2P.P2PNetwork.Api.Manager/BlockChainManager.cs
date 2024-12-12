@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Runtime.CompilerServices;
+using System.Transactions;
 
 namespace BlockChainP2P.P2PNetwork.Api.Manager;
 
@@ -45,6 +46,8 @@ internal class BlockChainManager : IBlockChainManager
             await _blockChainData.AddBlockToBlockChainAsync(newBlock);
             await BroadcastNewBlockAsync(newBlock);
         }
+
+        // Usunięcie wydanych outputów z niewydanych outputów i dodanie nowych niewydanych outputów z transakcji z tego bloku, musi być po wykopaniu i po walidacji transakcji i bloku
 
         return newBlock;
     }
