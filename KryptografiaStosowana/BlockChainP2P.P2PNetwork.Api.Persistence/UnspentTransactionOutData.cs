@@ -18,6 +18,11 @@ namespace BlockChainP2P.P2PNetwork.Api.Persistence
             _unspentTransactionOutputs = new List<UnspentTransactionOutput>();
         }
 
+        public List<UnspentTransactionOutput> GetUnspentTxOut()
+        {
+            return _unspentTransactionOutputs;
+        }
+
         public void UpdateUnspentTransactionOutputs(List<TransactionLib> newTransactions)
         {
             lock (_unspentTransactionOutputsLock)

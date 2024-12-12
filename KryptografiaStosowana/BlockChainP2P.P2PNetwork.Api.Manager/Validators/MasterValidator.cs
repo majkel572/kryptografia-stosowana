@@ -238,9 +238,9 @@ public static class MasterValidator
             Console.WriteLine("public key must contain only hex characters");
             return false;
         }
-        if (!address.StartsWith("04"))
+        if (!(address.StartsWith("04") || address.StartsWith("02") || address.StartsWith("03")))
         {
-            Console.WriteLine("public key must start with 04");
+            Console.WriteLine("public key must start with 04, 02 or 03");
             return false;
         }
         return true;
@@ -315,6 +315,40 @@ public static class MasterValidator
     {
         var utxo = unspentTxOuts.FirstOrDefault(uTxO => uTxO.TransactionOutputId == txIn.TransactionOutputId && uTxO.TransactionOutputIndex == txIn.TransactionOutputIndex);
         return utxo?.Amount ?? 0.0;
+    }
+
+    public static bool HasDuplicates(List<TransactionInputLib> txIns)
+    {
+        var duplicateGroups = txIns
+            .GroupBy(txIn => txIn.TransactionOutputId + txIn.TransactionOutputIndex)
+            .Where(g => g.Count() > 1);
+
+        foreach (var group in duplicateGroups)
+        {
+            Console.WriteLine("duplicate txIn: " + group.Key);
+        }
+
+        return duplicateGroups.Any();
+    }
+
+    public static bool ValidateBlockTransactions(List<TransactionLib> transactions, List<UnspentTransactionOutput> unspentTxOuts, int blockIndex)
+    {
+        var coinbaseTx = transactions[0];
+        if (!ValidateCoinbaseTx(coinbaseTx, blockIndex))
+        {
+            Console.WriteLine("invalid coinbase transaction: " + JsonConvert.SerializeObject(coinbaseTx));
+            return false;
+        }
+
+        var txIns = transactions.SelectMany(tx => tx.TransactionInputs).ToList();
+
+        if (HasDuplicates(txIns))
+        {
+            return false;
+        }
+
+        var normalTransactions = transactions.Skip(1).ToList();
+        return normalTransactions.All(tx => ValidateTransaction(tx, unspentTxOuts));
     }
     #endregion Transactions
 

@@ -10,7 +10,8 @@ namespace BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
 
 public interface IBlockChainManager
 {
-    Task<BlockLib> GenerateNextBlockAsync(string blockData);
+    Task<BlockLib> GenerateNextBlockAsync(List<TransactionLib> blockData);
+    Task<BlockLib> GenerateNextBlockWithTransaction(string receiverAddress, double amount);
     void ReplaceBlockChain(List<BlockLib> newBlockChain);
     Task BroadcastNewBlockAsync(BlockLib newBlock);
     Task<bool> ReceiveNewBlockAsync(BlockLib newBlock);

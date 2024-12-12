@@ -5,6 +5,7 @@ using BlockChainP2P.P2PNetwork.Api.Manager.ServiceHelpers;
 using BlockChainP2P.P2PNetwork.Api.Middlewares;
 using BlockChainP2P.P2PNetwork.Api.Persistence.ServiceHelpers;
 using BlockChainP2P.P2PNetwork.Api.Hubs;
+using BlockChainP2P.WalletHandler;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Json;
@@ -28,6 +29,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddPersistenceData();
 builder.Services.AddP2PTransientManagers();
+builder.Services.AddWallet();
 builder.Services.AddSignalR();
 
 var app = builder.Build();

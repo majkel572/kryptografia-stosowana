@@ -15,6 +15,9 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Runtime.CompilerServices;
 using System.Transactions;
 using BlockChainP2P.P2PNetwork.Api.Manager.Validators;
+using NBitcoin;
+using BlockChainP2P.P2PNetwork.Api.Manager.Transactions;
+using BlockChainP2P.WalletHandler.WalletManagement;
 
 namespace BlockChainP2P.P2PNetwork.Api.Manager.BlockChain;
 
@@ -23,16 +26,29 @@ internal class BlockChainManager : IBlockChainManager
     private readonly object _blockchainLock = new object();
     private readonly IBlockChainData _blockChainData;
     private readonly IPeerManager _peerManager;
+    private readonly IWallet _wallet;
+    private readonly IUnspentTransactionOutData _unspentTransactionOutData;
 
-    public BlockChainManager(IBlockChainData blockChainData, IPeerManager peerManager)
+    private static List<TransactionLib> GENESIS_TRANSACTION = new List<TransactionLib>(); // TODO: make genesis coinbase transaction
+
+    public BlockChainManager(
+        IBlockChainData blockChainData,
+        IPeerManager peerManager,
+        IWallet wallet,
+        IUnspentTransactionOutData unspentTransactionOutData)
     {
         _blockChainData = blockChainData
             ?? throw new ArgumentNullException(nameof(blockChainData));
         _peerManager = peerManager
             ?? throw new ArgumentNullException(nameof(peerManager));
+        _wallet = wallet
+            ?? throw new ArgumentNullException(nameof(wallet));
+        _unspentTransactionOutData = unspentTransactionOutData
+            ?? throw new ArgumentNullException(nameof(wallet));
+
     }
 
-    public async Task<BlockLib> GenerateNextBlockAsync(string blockData) // what if 2 threads create new block at the same time with same ids and one will write first?
+    public async Task<BlockLib> GenerateNextBlockAsync(List<TransactionLib> blockData) // what if 2 threads create new block at the same time with same ids and one will write first?
     {
         var latestBlock = await _blockChainData.GetHighestIndexBlockAsync();
         var blockChain = await _blockChainData.GetBlockChainAsync();
@@ -49,6 +65,23 @@ internal class BlockChainManager : IBlockChainManager
         // Usunięcie wydanych outputów z niewydanych outputów i dodanie nowych niewydanych outputów z transakcji z tego bloku, musi być po wykopaniu i po walidacji transakcji i bloku
 
         return newBlock;
+    }
+
+    public async Task<BlockLib> GenerateNextBlockWithTransaction(string receiverAddress, double amount)
+    {
+        if (!MasterValidator.IsValidAddress(receiverAddress))
+        {
+            throw new Exception("invalid address");
+        }
+        if (amount <= 0)
+        {
+            throw new Exception("invalid amount");
+        }
+
+        var coinbaseTx = TransactionProcessor.GetCoinbaseTransaction(_wallet.GetActivePublicAddress(), (await _blockChainData.GetHighestIndexBlockAsync()).Index + 1);
+        var tx = TransactionProcessor.CreateTransaction(receiverAddress, amount, _wallet.GetActivePrivate(), _unspentTransactionOutData.GetUnspentTxOut(), null); // TODO: pool, null is HACK
+        var blockData = new List<TransactionLib> { coinbaseTx, tx };
+        return await GenerateNextBlockAsync(blockData);
     }
 
     public async Task BroadcastNewBlockAsync(BlockLib newBlock)
@@ -125,10 +158,10 @@ internal class BlockChainManager : IBlockChainManager
         Log.Information("Creating genesis block");
         var genesisBlock = new BlockLib(
             index: 0,
-            hash: BlockOperations.CalculateHash(0, "previous hash", DateTime.Now, "Genesis Block", 1, 0),
+            hash: BlockOperations.CalculateHash(0, "previous hash", DateTime.Now, GENESIS_TRANSACTION, 1, 0),
             previousHash: "previous hash",
             timestamp: DateTime.Now,
-            data: "Genesis Block",
+            data: GENESIS_TRANSACTION,
             difficulty: 2,
             nonce: 0
         );

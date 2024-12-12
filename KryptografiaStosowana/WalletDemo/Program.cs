@@ -2,6 +2,8 @@
 using BlockChainP2P.WalletHandler.WalletManagement;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NBitcoin;
+using NBitcoin.DataEncoders;
 
 namespace WalletDemo
 {
@@ -114,8 +116,8 @@ namespace WalletDemo
 
             try
             {
-                string signature = wallet.SignTransaction(transactionData);
-                Console.WriteLine("Transaction signed. Signature: " + signature);
+                //string signature = wallet.SignTransaction(transactionData);
+                //Console.WriteLine("Transaction signed. Signature: " + signature);
             }
             catch (InvalidOperationException e)
             {
@@ -149,10 +151,12 @@ namespace WalletDemo
             try
             {
                 var privateKeys = keyStorage.LoadPrivateKeys(filePath);
-                foreach (var privateKey in privateKeys)
+                foreach (var privateKeyHex in privateKeys)
                 {
-                    string publicKey = KeyGenerator.GeneratePublicKeyFromPrivateKey(privateKey);
-                    var keyPair = new KeyPair(publicKey, privateKey);
+                    byte[] privateKeyBytes = Encoders.Hex.DecodeData(privateKeyHex);
+                    Key privkey = new Key(privateKeyBytes);
+                    PubKey publicKey = privkey.PubKey;
+                    var keyPair = new BlockChainP2P.WalletHandler.KeyManagement.KeyPair(publicKey, privkey);
                     wallet.AddKeyPair(keyPair);
                 }
 

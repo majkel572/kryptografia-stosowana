@@ -13,23 +13,15 @@ namespace BlockChainP2P.WalletHandler.KeyManagement
     {
         public static KeyPair GenerateKeys()
         {
-            using (ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-            {
-                string privateKey = Convert.ToBase64String(ecdsa.ExportECPrivateKey());
+            Key privateKey = new Key();
 
-                string publicKey = Convert.ToBase64String(ecdsa.ExportSubjectPublicKeyInfo());
+            PubKey publicKey = privateKey.PubKey.Compress();
 
-                return new KeyPair(publicKey, privateKey);
-            }
+            return new KeyPair(publicKey, privateKey);
         }
-        public static string GeneratePublicKeyFromPrivateKey(string privateKey)
+        public static PubKey GeneratePublicKeyFromPrivateKey(Key privateKey)
         {
-            using (ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-            {
-                ecdsa.ImportECPrivateKey(Convert.FromBase64String(privateKey), out _);
-
-                return Convert.ToBase64String(ecdsa.ExportSubjectPublicKeyInfo());
-            }
+            return privateKey.PubKey.Compress();
         }
 
         public static string GetPublicKeyBTC(string privateKeyHex)

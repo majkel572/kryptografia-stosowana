@@ -1,4 +1,6 @@
-﻿using System;
+﻿using NBitcoin;
+using NBitcoin.DataEncoders;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,13 +10,23 @@ namespace BlockChainP2P.WalletHandler.KeyManagement
 {
     public class KeyPair
     {
-        public string PublicKey { get; }
-        public string PrivateKey { get; }
+        public PubKey PublicKey { get; }
+        public Key PrivateKey { get; }
 
-        public KeyPair(string publicKey, string privateKey)
+        public KeyPair(PubKey publicKey, Key privateKey)
         {
             PublicKey = publicKey;
             PrivateKey = privateKey;
+        }
+
+        public string GetPublicKeyHex()
+        {
+            return PublicKey.Compress().ToHex();
+        }
+        
+        public string GetPrivateKeyHex()
+        {
+            return Encoders.Hex.EncodeData(PrivateKey.ToBytes());
         }
     }
 }
