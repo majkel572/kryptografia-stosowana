@@ -17,7 +17,6 @@ public static class ServiceExtensions
     {
         services.AddTransient<IPeerManager, PeerManager>();
         services.AddTransient<IBlockChainManager, BlockChainManager>();
-        services.AddTransient<ITransactionManager, TransactionProcessor>();
         return services;
     }
 }
