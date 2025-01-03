@@ -77,7 +77,9 @@ internal class BlockChainManager : IBlockChainManager
         {
             throw new Exception("invalid amount");
         }
-
+        // ponizej zakladamy ze na komputerze na ktorym znajduje sie node jest rowniez wallet jakis ktory tutaj moznaby podpiac zeby mu zaplacic za wykopanie tego bloczku
+        // nie ma w zasadzie mechanizmu na ten moment gdzie stwierdzamy jaki % transakcji stanowi fee dla minera, nalezaloby to uwzglednic w txouts niezuzytych po dokonaniu
+        // transakcji tak aby txout nadawcy (czyli juz txin bo ma referencje) = txout odbiorcy + txout minera
         var coinbaseTx = TransactionProcessor.GetCoinbaseTransaction(_wallet.GetActivePublicAddress(), (await _blockChainData.GetHighestIndexBlockAsync()).Index + 1);
         var tx = TransactionProcessor.CreateTransaction(receiverAddress, amount, _wallet.GetActivePrivate(), _unspentTransactionOutData.GetUnspentTxOut(), null); // TODO: pool, null is HACK
         var blockData = new List<TransactionLib> { coinbaseTx, tx };
