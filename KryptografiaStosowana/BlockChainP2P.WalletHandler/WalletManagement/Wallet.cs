@@ -1,4 +1,6 @@
-﻿using BlockChainP2P.WalletHandler.KeyManagement;
+﻿using BlockChainP2P.P2PNetwork.Api.Lib.Model;
+using BlockChainP2P.WalletHandler.KeyManagement;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,18 +10,18 @@ using System.Threading.Tasks;
 
 namespace BlockChainP2P.WalletHandler.WalletManagement;
 
-public class Wallet
+public class Wallet : IWallet
 {
-    private readonly List<KeyPair> _keyPairs;
-    private KeyPair _activeKeyPair;
+    private readonly List<KeyManagement.KeyPair> _keyPairs;
+    private KeyManagement.KeyPair _activeKeyPair;
     private readonly object _lock = new object();
 
     public Wallet()
     {
-        _keyPairs = new List<KeyPair>();
+        _keyPairs = new List<KeyManagement.KeyPair>();
     }
 
-    public void AddKeyPair(KeyPair keyPair)
+    public void AddKeyPair(KeyManagement.KeyPair keyPair)
     {
         lock (_lock)
         {
@@ -31,7 +33,7 @@ public class Wallet
         }
     }
 
-    public void RemoveKeyPair(KeyPair keyPair)
+    public void RemoveKeyPair(KeyManagement.KeyPair keyPair)
     {
         lock (_lock)
         {
@@ -67,17 +69,17 @@ public class Wallet
             List<string> publicAddresses = new List<string>();
             foreach (var keyPair in _keyPairs)
             {
-                publicAddresses.Add(keyPair.PublicKey);
+                publicAddresses.Add(keyPair.GetPublicKeyHex());
             }
             return publicAddresses;
         }
     }
 
-    public List<KeyPair> GetKeyPairs()
+    public List<KeyManagement.KeyPair> GetKeyPairs()
     {
         lock (_lock)
         {
-            List<KeyPair> privateAddresses = new List<KeyPair>(_keyPairs);
+            List<KeyManagement.KeyPair> privateAddresses = new List<KeyManagement.KeyPair>(_keyPairs);
             return privateAddresses;
         }
     }
@@ -86,28 +88,15 @@ public class Wallet
     {
         lock (_lock)
         {
-            return _activeKeyPair?.PublicKey ?? "No active key";
+            return _activeKeyPair?.GetPublicKeyHex() ?? "No active key";
         }
     }
 
-    public string SignTransaction(string transactionData)
+    public string GetActivePrivate()
     {
         lock (_lock)
         {
-            if (_activeKeyPair == null)
-            {
-                throw new InvalidOperationException("No active key pair available to sign transaction.");
-            }
-
-            using (ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256))
-            {
-                ecdsa.ImportECPrivateKey(Convert.FromBase64String(_activeKeyPair.PrivateKey), out _);
-
-                var hash = SHA256.HashData(Encoding.UTF8.GetBytes(transactionData));
-                var signature = ecdsa.SignHash(hash);
-
-                return Convert.ToBase64String(signature);
-            }
+            return _activeKeyPair?.GetPrivateKeyHex() ?? "No active key";
         }
     }
 }

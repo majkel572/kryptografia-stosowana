@@ -2,6 +2,8 @@
 using BlockChainP2P.WalletHandler.WalletManagement;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NBitcoin;
+using NBitcoin.DataEncoders;
 
 namespace WalletDemo
 {
@@ -10,7 +12,6 @@ namespace WalletDemo
         static void Main(string[] args)
         {
             Wallet wallet = new Wallet();
-            KeyGenerator keyGenerator = new KeyGenerator();
             KeyStorage keyStorage = new KeyStorage("SampleEncryptionKey1234");
 
             while (true)
@@ -30,7 +31,7 @@ namespace WalletDemo
                 switch (input)
                 {
                     case "1":
-                        CreateNewKeyPair(wallet, keyGenerator);
+                        CreateNewKeyPair(wallet);
                         break;
                     case "2":
                         ListPublicKeys(wallet);
@@ -59,9 +60,9 @@ namespace WalletDemo
             }
         }
 
-        private static void CreateNewKeyPair(Wallet wallet, KeyGenerator keyGenerator)
+        private static void CreateNewKeyPair(Wallet wallet)
         {
-            var keyPair = keyGenerator.GenerateKeys();
+            var keyPair = KeyGenerator.GenerateKeys();
             wallet.AddKeyPair(keyPair);
             Console.WriteLine("New key pair created and added to wallet.");
         }
@@ -115,8 +116,8 @@ namespace WalletDemo
 
             try
             {
-                string signature = wallet.SignTransaction(transactionData);
-                Console.WriteLine("Transaction signed. Signature: " + signature);
+                //string signature = wallet.SignTransaction(transactionData);
+                //Console.WriteLine("Transaction signed. Signature: " + signature);
             }
             catch (InvalidOperationException e)
             {
@@ -150,10 +151,12 @@ namespace WalletDemo
             try
             {
                 var privateKeys = keyStorage.LoadPrivateKeys(filePath);
-                foreach (var privateKey in privateKeys)
+                foreach (var privateKeyHex in privateKeys)
                 {
-                    string publicKey = KeyGenerator.GeneratePublicKeyFromPrivateKey(privateKey);
-                    var keyPair = new KeyPair(publicKey, privateKey);
+                    byte[] privateKeyBytes = Encoders.Hex.DecodeData(privateKeyHex);
+                    Key privkey = new Key(privateKeyBytes);
+                    PubKey publicKey = privkey.PubKey;
+                    var keyPair = new BlockChainP2P.WalletHandler.KeyManagement.KeyPair(publicKey, privkey);
                     wallet.AddKeyPair(keyPair);
                 }
 

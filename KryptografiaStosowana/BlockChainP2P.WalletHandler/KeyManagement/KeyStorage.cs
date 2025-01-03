@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using NBitcoin.DataEncoders;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,7 +23,7 @@ public class KeyStorage
         var encryptedKeys = new List<string>();
         foreach (var keyPair in keyPairs)
         {
-            encryptedKeys.Add(EncryptPrivateKey(keyPair.PrivateKey));
+            encryptedKeys.Add(EncryptPrivateKey(Encoders.Hex.EncodeData(keyPair.PrivateKey.ToBytes())));
         }
         File.WriteAllText(filePath, JsonConvert.SerializeObject(encryptedKeys));
     }

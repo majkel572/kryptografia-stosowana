@@ -13,7 +13,7 @@ public class BlockLib
     public string Hash { get; set; }
     public string PreviousHash { get; set; }
     public DateTime Timestamp { get; set; }
-    public string Data { get; set; }
+    public List<TransactionLib> Data { get; set; }
     public int Difficulty { get; set; }
     public int Nonce { get; set; }
 
@@ -22,7 +22,7 @@ public class BlockLib
         string hash,
         string previousHash,
         DateTime timestamp,
-        string data,
+        List<TransactionLib> data,
         int difficulty,
         int nonce)
     {

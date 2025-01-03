@@ -1,4 +1,7 @@
-﻿using BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
+﻿using BlockChainP2P.P2PNetwork.Api.Manager.BlockChain;
+using BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
+using BlockChainP2P.P2PNetwork.Api.Manager.Peers;
+using BlockChainP2P.P2PNetwork.Api.Manager.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -12,10 +15,8 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddP2PTransientManagers(this IServiceCollection services)
     {
-        services
-            .AddTransient<IPeerManager, PeerManager>();
-        services
-            .AddTransient<IBlockChainManager, BlockChainManager>();
+        services.AddTransient<IPeerManager, PeerManager>();
+        services.AddTransient<IBlockChainManager, BlockChainManager>();
         return services;
     }
 }

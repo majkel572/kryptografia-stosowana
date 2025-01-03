@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageReference Include="NBitcoin" Version="7.0.46" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Serilog" Version="4.1.0" />
   </ItemGroup>
@@ -16,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BlockChainP2P.P2PNetwork.Api.Lib\BlockChainP2P.P2PNetwork.Api.Lib.csproj" />
     <ProjectReference Include="..\BlockChainP2P.P2PNetwork.Api.Persistence\BlockChainP2P.P2PNetwork.Api.Persistence.csproj" />
+    <ProjectReference Include="..\BlockChainP2P.WalletHandler\BlockChainP2P.WalletHandler.csproj" />
   </ItemGroup>
 
 </Project>

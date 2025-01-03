@@ -9,7 +9,7 @@ using BlockChainP2P.P2PNetwork.Api.Lib.Request;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BlockChainP2P.P2PNetwork.Api.Manager;
+namespace BlockChainP2P.P2PNetwork.Api.Manager.Peers;
 
 internal class PeerManager : IPeerManager
 {
@@ -65,14 +65,14 @@ internal class PeerManager : IPeerManager
             // {
             //     Log.Information($"Received list of {peers.Count} known peers");
             //     var connectTasks = new List<Task>();
-                
+
             //     foreach (var peer in peers.Where(p => 
             //         p.IPAddress != thisNode.IPAddress || p.Port != thisNode.Port))
             //     {
             //         await _peerData.AddPeerToKnownPeersAsync(peer);
             //         connectTasks.Add(ConnectWithPeerNetworkAsync(peer));
             //     }
-                
+
             //     await Task.WhenAll(connectTasks);
             // });
 
@@ -90,7 +90,7 @@ internal class PeerManager : IPeerManager
             //     Log.Information($"Received new block with index {block.Index}");
             //     await _blockChainManager.ReceiveNewBlockAsync(block);
             // });
-            
+
             await connection.StartAsync();
 
             // await connection.InvokeAsync("RegisterPeer", thisNode);
@@ -115,7 +115,8 @@ internal class PeerManager : IPeerManager
     public async Task RegisterPeerAsync(PeerLib peer)
     {
         var connection = await MakeConnectionWithPeer(peer);
-        if (connection == null) {
+        if (connection == null)
+        {
             return;
         }
 
@@ -134,7 +135,7 @@ internal class PeerManager : IPeerManager
         var connections = await _peerData.GetAllConnectionsAsync();
         Log.Information($"Broadcasting {method} to {connections.Count} peers {string.Join(", ", connections.Keys)}");
         var tasks = new List<Task>();
-        
+
         // lock (_connectionsLock) czy jest tu potrzebny?
         foreach (var connectionPair in connections)
         {
@@ -159,7 +160,8 @@ internal class PeerManager : IPeerManager
         return await _peerData.GetAllKnownPeersAsync();
     }
 
-    public async Task RequestConnectionWithPeerAsync(PeerLib peer) {
+    public async Task RequestConnectionWithPeerAsync(PeerLib peer)
+    {
         await MakeConnectionWithPeer(peer);
         return;
     }
@@ -174,7 +176,7 @@ internal class PeerManager : IPeerManager
         var thisNode = await _peerData.GetThisPeerInfoAsync();
         var knownPeers = await _peerData.GetAllKnownPeersAsync();
         int newPeersCount = 0;
-        
+
         foreach (var peer in peers)
         {
             // Pomijamy samego siebie
@@ -183,13 +185,15 @@ internal class PeerManager : IPeerManager
                 continue;
             }
 
-            if(knownPeers.Any(p => p.IPAddress == peer.IPAddress && p.Port == peer.Port)) {
+            if (knownPeers.Any(p => p.IPAddress == peer.IPAddress && p.Port == peer.Port))
+            {
                 continue;
             }
-            
+
             // Próbujemy nawiązać połączenie z nowym peerem
             var connection = await MakeConnectionWithPeer(peer);
-            if (connection == null) {
+            if (connection == null)
+            {
                 continue;
             }
 
@@ -200,37 +204,40 @@ internal class PeerManager : IPeerManager
         Log.Information($"Zarejestrowano {newPeersCount} nowych peerów");
     }
 
-    private async Task<HubConnection?> MakeConnectionWithPeer(PeerLib peer) {
+    private async Task<HubConnection?> MakeConnectionWithPeer(PeerLib peer)
+    {
         const int maxRetries = 3;
         const int delayMilliseconds = 2000; // 2 sekundy między próbami
 
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            try {
+            try
+            {
                 var connection = new HubConnectionBuilder()
                     .WithUrl($"http://{peer.IPAddress}:{peer.Port}/blockchainHub")
                     .WithAutomaticReconnect()
                     .Build();
-            
+
                 await connection.StartAsync();
 
                 string connectionKey = $"{peer.IPAddress}:{peer.Port}";
                 peer.ConnectionId = connection.ConnectionId;
                 await _peerData.AddHubConnection(connectionKey, connection);
                 await _peerData.AddPeerToKnownPeersAsync(peer);
-                
+
                 Log.Information($"Pomyślnie zarejestrowano nowego peera (IP: {peer.IPAddress}, port: {peer.Port}) przy próbie {attempt}");
                 return connection; // Sukces - wychodzimy z metody
-            } 
-            catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Log.Warning($"Próba {attempt}/{maxRetries} połączenia z peerem (IP: {peer.IPAddress}, port: {peer.Port}) nie powiodła się: {ex.Message}");
-                
+
                 if (attempt < maxRetries)
                 {
                     await Task.Delay(delayMilliseconds);
                     continue;
                 }
-                
+
                 Log.Error($"Nie udało się zarejestrować peera po {maxRetries} próbach");
             }
         }
