@@ -53,6 +53,14 @@ app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 app.MapHub<BlockchainHub>("/blockchainHub");
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var blockChainManager = services.GetRequiredService<IBlockChainManager>();
+    
+    await blockChainManager.CreateGenesisBlockAsync();
+}
+
 if (args[0]!="init")
 {
     using (var scope = app.Services.CreateScope())
@@ -80,16 +88,6 @@ if (args[0]!="init")
         {
             Log.Error("An error occurred while connecting to the peer network: {Error}", ex.Message);
         }
-    }
-}
-else
-{
-    using (var scope = app.Services.CreateScope())
-    {
-        var services = scope.ServiceProvider;
-        var blockChainManager = services.GetRequiredService<IBlockChainManager>();
-        
-        await blockChainManager.CreateGenesisBlockAsync();
     }
 }
 

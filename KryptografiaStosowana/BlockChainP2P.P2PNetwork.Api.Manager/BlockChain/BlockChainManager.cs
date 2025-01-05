@@ -135,7 +135,7 @@ internal class BlockChainManager : IBlockChainManager
         var currentBlockChain = await _blockChainData.GetBlockChainAsync();
         var genesisBlock = await _blockChainData.GetGenesisBlockAsync();
 
-        if (currentBlockChain.Count() == 0 || MasterValidator.ValidateBlockChain(newBlockChain, genesisBlock) && newBlockChain.Count > currentBlockChain.Count())
+        if (MasterValidator.ValidateBlockChain(newBlockChain, genesisBlock) && newBlockChain.Count > currentBlockChain.Count())
         {
             Log.Error("Received blockchain is valid. Replacing current blockchain with received blockchain.");
             _blockChainData.SwapBlockChainsAsync(newBlockChain);
@@ -158,9 +158,9 @@ internal class BlockChainManager : IBlockChainManager
         Log.Information("Creating genesis block");
         var genesisBlock = new BlockLib(
             index: 0,
-            hash: BlockOperations.CalculateHash(0, "previous hash", DateTime.Now, GENESIS_TRANSACTION, 1, 0),
+            hash: "0d6006614ae1b0cd572dec0e356131c060a289d14d273a4da9c119bdd8859374",
             previousHash: "previous hash",
-            timestamp: DateTime.Now,
+            timestamp: Convert.ToDateTime("2024-12-12T00:02:21.2383261+01:00"),
             data: GENESIS_TRANSACTION,
             difficulty: 2,
             nonce: 0
