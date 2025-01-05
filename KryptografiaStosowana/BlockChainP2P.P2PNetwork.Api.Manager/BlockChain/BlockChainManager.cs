@@ -135,7 +135,7 @@ internal class BlockChainManager : IBlockChainManager
         var currentBlockChain = await _blockChainData.GetBlockChainAsync();
         var genesisBlock = await _blockChainData.GetGenesisBlockAsync();
 
-        if (MasterValidator.ValidateBlockChain(newBlockChain, genesisBlock) && newBlockChain.Count > currentBlockChain.Count())
+        if (newBlockChain.Count > currentBlockChain.Count() && MasterValidator.ValidateBlockChain(newBlockChain, genesisBlock))
         {
             Log.Error("Received blockchain is valid. Replacing current blockchain with received blockchain.");
             _blockChainData.SwapBlockChainsAsync(newBlockChain);

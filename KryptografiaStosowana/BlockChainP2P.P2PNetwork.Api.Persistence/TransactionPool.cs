@@ -4,22 +4,38 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
+using BlockChainP2P.P2PNetwork.Api.Lib.Model;
+using BlockChainP2P.P2PNetwork.Api.Persistence.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace BlockChainP2P.P2PNetwork.Api.Persistence;
 
-internal static class TransactionPool
+internal class TransactionPool : ITransactionPool
 {
-    private static List<Transaction> transactions = new List<Transaction>();
+    private List<TransactionLib> _transactions = new List<TransactionLib>();
+    private readonly object _transactionsLock = new object();
 
-    public static void AddTransaction(Transaction tx)
+    public async Task<List<TransactionLib>> GetTransactions()
     {
-        transactions.Add(tx);
+        List<TransactionLib> txs = new List<TransactionLib>(_transactions);
+        return txs;
     }
 
-    public static List<Transaction> GetTransactions()
-    {
-        List<Transaction> txs = new List<Transaction>(transactions);
-        transactions.Clear();
-        return txs;
+    public void AddTransactionToMemPool(TransactionLib transaction) {
+        lock (_transactionsLock) {
+            _transactions.Add(transaction);
+        }
+    }
+
+    public void AddTransactionsToMemPool(List<TransactionLib> transactions) {
+        lock (_transactionsLock) {
+            _transactions.AddRange(transactions);
+        }
+    }
+
+    public void RemoveTransactionFromMemPool(TransactionLib transaction) {
+        lock (_transactionsLock) {
+            _transactions.Remove(transaction);
+        }
     }
 }

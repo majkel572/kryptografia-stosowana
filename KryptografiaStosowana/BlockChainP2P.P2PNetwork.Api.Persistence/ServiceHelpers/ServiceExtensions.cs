@@ -15,6 +15,7 @@ public static class ServiceExtensions
         services.AddSingleton<IPeerData, PeerData>();
         services.AddSingleton<IBlockChainData, BlockChainData>();
         services.AddSingleton<IUnspentTransactionOutData, UnspentTransactionOutData>();
+        services.AddSingleton<ITransactionPool, TransactionPool>();
         return services;
     }
 }
