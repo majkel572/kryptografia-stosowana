@@ -1,5 +1,6 @@
 ﻿using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 using BlockChainP2P.WalletHandler.KeyManagement;
+using NBitcoin;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -19,6 +20,13 @@ public class Wallet : IWallet
     public Wallet()
     {
         _keyPairs = new List<KeyManagement.KeyPair>();
+        var privateKey = new Key(); 
+        var publicKey = privateKey.PubKey; 
+
+        var newKeyPair = new KeyManagement.KeyPair(publicKey, privateKey);
+        _keyPairs.Add(newKeyPair);
+
+        _activeKeyPair = newKeyPair;
     }
 
     public void AddKeyPair(KeyManagement.KeyPair keyPair)

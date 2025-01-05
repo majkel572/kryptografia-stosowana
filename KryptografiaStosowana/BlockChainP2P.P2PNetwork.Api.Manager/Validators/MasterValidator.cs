@@ -228,23 +228,43 @@ public static class MasterValidator
 
     public static bool IsValidAddress(string address)
     {
-        if (address.Length != 130)
+        if (string.IsNullOrWhiteSpace(address))
         {
-            Console.WriteLine("invalid public key length");
+            Console.WriteLine("Address is null or empty");
             return false;
         }
+
+        if (address.StartsWith("04"))
+        {
+            if (address.Length != 130)
+            {
+                Console.WriteLine("Invalid uncompressed public key length");
+                return false;
+            }
+        }
+        else if (address.StartsWith("02") || address.StartsWith("03"))
+        {
+            if (address.Length != 66)
+            {
+                Console.WriteLine("Invalid compressed public key length");
+                return false;
+            }
+        }
+        else
+        {
+            Console.WriteLine("Public key must start with 04, 02, or 03");
+            return false;
+        }
+
         if (!System.Text.RegularExpressions.Regex.IsMatch(address, "^[a-fA-F0-9]+$"))
         {
-            Console.WriteLine("public key must contain only hex characters");
+            Console.WriteLine("Public key must contain only hex characters");
             return false;
         }
-        if (!(address.StartsWith("04") || address.StartsWith("02") || address.StartsWith("03")))
-        {
-            Console.WriteLine("public key must start with 04, 02 or 03");
-            return false;
-        }
+
         return true;
     }
+
 
     public static bool ValidateTxIn(TransactionInputLib txIn, TransactionLib transaction, List<UnspentTransactionOutput> unspentTxOuts)
     {

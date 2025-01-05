@@ -28,8 +28,10 @@ internal class BlockChainManager : IBlockChainManager
     private readonly IPeerManager _peerManager;
     private readonly IWallet _wallet;
     private readonly IUnspentTransactionOutData _unspentTransactionOutData;
+    private const string GENESIS_ADDRESS = "genesis-wallet-address"; 
+    private const double GENESIS_AMOUNT = 50.0; 
 
-    private static List<TransactionLib> GENESIS_TRANSACTION = new List<TransactionLib>(); // TODO: make genesis coinbase transaction
+    private static List<TransactionLib> GENESIS_TRANSACTION => GetGenesisTransaction(); // TODO: make genesis coinbase transaction
 
     public BlockChainManager(
         IBlockChainData blockChainData,
@@ -158,7 +160,7 @@ internal class BlockChainManager : IBlockChainManager
         Log.Information("Creating genesis block");
         var genesisBlock = new BlockLib(
             index: 0,
-            hash: BlockOperations.CalculateHash(0, "previous hash", DateTime.Now, GENESIS_TRANSACTION, 1, 0),
+            hash: "19dec554ba52b623ecfc5d9da84774c0cef9d14ba2ad6697ed80f4d077e17351", //BlockOperations.CalculateHash(0, "previous hash", DateTime.Now, GENESIS_TRANSACTION, 1, 0),
             previousHash: "previous hash",
             timestamp: DateTime.Now,
             data: GENESIS_TRANSACTION,
@@ -180,5 +182,24 @@ internal class BlockChainManager : IBlockChainManager
 
         // await connection.StartAsync();
         await connection.InvokeAsync("RequestBlockchain");
+    }
+
+    private List<TransactionLib> GetGenesisTransaction()
+    {
+        // Create a single transaction output for the genesis address
+        var transactionOutput = new TransactionOutputLib(
+            address: GENESIS_ADDRESS,
+            amount: GENESIS_AMOUNT
+        );
+
+        // Create the genesis transaction
+        var genesisTransaction = new TransactionLib
+        {
+            Id = Guid.NewGuid().ToString(), // Unique transaction ID
+            TransactionInputs = new List<TransactionInputLib>(), // No inputs for the genesis transaction
+            TransactionOutputs = new List<TransactionOutputLib> { transactionOutput }
+        };
+
+        return new List<TransactionLib> { genesisTransaction };
     }
 }
