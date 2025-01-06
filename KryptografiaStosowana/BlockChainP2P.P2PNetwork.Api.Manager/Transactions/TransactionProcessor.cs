@@ -21,6 +21,13 @@ public static class TransactionProcessor
 {
     public static readonly double COINBASE_AMOUNT = 25.0;
 
+    /// <summary>
+    /// Generates a unique identifier (ID) for a transaction by hashing the combined content of its inputs and outputs.
+    /// </summary>
+    /// <param name="transaction">Transaction for which the ID is generated</param>
+    /// <returns>
+    /// A string representing the SHA-256 hash of the concatenated details of the transaction inputs and outputs
+    /// </returns>
     public static string GetTransactionId(TransactionLib transaction)
     {
         string txInContent = string.Concat(
@@ -40,6 +47,15 @@ public static class TransactionProcessor
         }
     }
 
+    /// <summary>
+    /// Creates a coinbase transaction for the specified recipient address and block index.
+    /// A coinbase transaction is the first transaction in a block, granting the mining reward to the specified address.
+    /// </summary>
+    /// <param name="address">The address to receive the coinbase reward.</param>
+    /// <param name="blockIndex">The index of the block, used as the input index in the transaction.</param>
+    /// <returns>
+    /// Returns a new coinbase transaction containing a single input and a single output with the specified reward amount.
+    /// </returns>
     public static TransactionLib GetCoinbaseTransaction(string address, int blockIndex)
     {
         var tx = new TransactionLib();
@@ -56,6 +72,13 @@ public static class TransactionProcessor
         return tx;
     }
 
+    /// <summary>
+    /// Validates a list of transactions within a block and updates the state of unspent transaction outputs.
+    /// </summary>
+    /// <param name="transactions">List of transactions to validate and process</param>
+    /// <param name="unspentTxOuts">Current list of unspent transaction outputs</param>
+    /// <param name="blockIndex">Index of block containing transactions</param>
+    /// <returns>List of unspent txouts</returns>
     public static List<UnspentTransactionOutput> ProcessTransactions(List<TransactionLib> transactions, List<UnspentTransactionOutput> unspentTxOuts, int blockIndex)
     {
         if (!MasterValidator.IsValidTransactionsStructure(transactions))
@@ -72,6 +95,16 @@ public static class TransactionProcessor
         //return UpdateUnspentTxOuts(transactions, unspentTxOuts);
     }
 
+    /// <summary>
+    /// Signing transaction input
+    /// </summary>
+    /// <param name="transaction">Transaction to sign</param>
+    /// <param name="transactionInputIndex">Transaction input index</param>
+    /// <param name="privateKeyHex">Private key to sign transaction with</param>
+    /// <param name="unspentTxOuts">All unspent transaction outputs</param>
+    /// <returns>Hexadecimaly encoded transaction signature</returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="Exception"></exception>
     public static string SignTransactionInput(
         TransactionLib transaction,
         int transactionInputIndex,
@@ -122,6 +155,12 @@ public static class TransactionProcessor
         return signatureHex;
     }
 
+    /// <summary>
+    /// Get balance for existing wallet address
+    /// </summary>
+    /// <param name="address">Wallet address to check balance for</param>
+    /// <param name="unspentTxOuts">All unspent transaction outs</param>
+    /// <returns>Returns balance for specified wallet address</returns>
     public static double GetBalance(string address, List<UnspentTransactionOutput> unspentTxOuts)
     {
         return unspentTxOuts
@@ -129,6 +168,13 @@ public static class TransactionProcessor
             .Sum(x => x.Amount);
     }
 
+    /// <summary>
+    /// Searching for unspent transaction outputs to cover the amount needed for new transaction
+    /// </summary>
+    /// <param name="amount">Amount of the new transaction</param>
+    /// <param name="walletUnspentTxOuts">Existing list of unspent transaction outputs</param>
+    /// <returns>Returns usable txouts with amount to send back to the sender</returns>
+    /// <exception cref="InvalidOperationException"></exception>
     public static (List<UnspentTransactionOutput> IncludedUnspentTxOuts, double LeftOverAmount) FindTxOutsForAmount(
         double amount,
         List<UnspentTransactionOutput> walletUnspentTxOuts)
@@ -151,6 +197,11 @@ public static class TransactionProcessor
         throw new InvalidOperationException("Not enough coins to send transaction");
     }
 
+    /// <summary>
+    /// Converts an unspent transaction output into an unsigned transaction input
+    /// </summary>
+    /// <param name="unspentTxOut">UTXO to be converted</param>
+    /// <returns>TxIn containing the transaction output ID and index from the provided UTXO, without a signature</returns>
     private static TransactionInputLib ToUnsignedTxIn(UnspentTransactionOutput unspentTxOut)
     {
         return new TransactionInputLib
@@ -160,6 +211,13 @@ public static class TransactionProcessor
         };
     }
 
+    /// <summary>
+    /// Creates unsigned transaction inputs for a specified transaction amount by selecting appropriate unspent transaction outputs
+    /// </summary>
+    /// <param name="amount">The required transaction amount</param>
+    /// <param name="myUnspentTxOuts">A list of UTXOs owned by the sender</param>
+    /// <param name="unsignedTxIns">Outputs a list of unsigned TxIns created from the selected UTXOs</param>
+    /// <param name="leftOverAmount">Outputs the remaining balance after the transaction amount is covered</param>
     public static void CreateUnsignedTxIns(
         double amount,
         List<UnspentTransactionOutput> myUnspentTxOuts,
@@ -171,6 +229,14 @@ public static class TransactionProcessor
         leftOverAmount = result.LeftOverAmount;
     }
 
+    /// <summary>
+    /// Creates transaction outputs for transferring a specified amount to a receiver, with an optional leftover amount returned to the sender
+    /// </summary>
+    /// <param name="receiverAddress">Address of the transaction's recipient</param>
+    /// <param name="myAddress">Sender's address for returning the leftover amount, if any</param>
+    /// <param name="amount">Amount to transfer to the recipient</param>
+    /// <param name="leftOverAmount">Remaining balance to be returned to the sender, if greater than zero</param>
+    /// <returns>A list of TxOuts containing the recipient's and (if applicable) the sender's leftover balance</returns>
     public static List<TransactionOutputLib> CreateTxOuts(
         string receiverAddress,
         string myAddress,
@@ -189,6 +255,19 @@ public static class TransactionProcessor
         }
     }
 
+    /// <summary>
+    /// Creates a new transaction to send a specified amount to a receiver's address. 
+    /// Selects unspent transaction outputs from the sender's address to cover the transaction amount 
+    /// and signs the inputs to ensure validity.
+    /// </summary>
+    /// <param name="receiverAddress">Address of the transaction recipient</param>
+    /// <param name="amount">Amount to send to the recipient</param>
+    /// <param name="privateKey">Private key of the sender, used for signing the transaction inputs</param>
+    /// <param name="unspentTxOuts">List of all available unspent transaction outputs</param>
+    /// <param name="txPool">Optional transaction pool storing not yet processed transactions</param>
+    /// <returns>
+    /// Returns a signed transaction ready to be added to the blockchain
+    /// </returns>
     public static TransactionLib CreateTransaction(
         string receiverAddress,
         double amount,
