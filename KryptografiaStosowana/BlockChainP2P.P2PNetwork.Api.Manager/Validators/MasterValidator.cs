@@ -370,6 +370,22 @@ public static class MasterValidator
         var normalTransactions = transactions.Skip(1).ToList();
         return normalTransactions.All(tx => ValidateTransaction(tx, unspentTxOuts));
     }
+
+    public static bool IsValidTxForPool(TransactionLib tx, List<TransactionLib> transactionPool)
+    {
+        var txPoolIns = transactionPool.SelectMany(tx => tx.TransactionInputs).ToList();
+
+        foreach (var txIn in tx.TransactionInputs)
+        {
+            if (txPoolIns.Any(txPoolIn => txIn.TransactionOutputIndex == txPoolIn.TransactionOutputIndex && txIn.TransactionOutputId == txPoolIn.TransactionOutputId))
+            {
+                Console.WriteLine("txIn already found in the txPool");
+                return false;
+            }
+        }
+
+        return true;
+    }
     #endregion Transactions
 
     #region CoinbaseTransactions
