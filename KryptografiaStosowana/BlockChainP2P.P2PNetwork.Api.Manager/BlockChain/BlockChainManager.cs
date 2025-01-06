@@ -14,10 +14,12 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Runtime.CompilerServices;
 using System.Transactions;
-using BlockChainP2P.P2PNetwork.Api.Manager.Validators;
 using NBitcoin;
 using BlockChainP2P.P2PNetwork.Api.Manager.Transactions;
 using BlockChainP2P.WalletHandler.WalletManagement;
+using BlockChainP2P.P2PNetwork.Api.Lib.Transactions;
+using BlockChainP2P.P2PNetwork.Api.Lib.Validators;
+using BlockChainP2P.P2PNetwork.Api.Lib.Block;
 
 namespace BlockChainP2P.P2PNetwork.Api.Manager.BlockChain;
 

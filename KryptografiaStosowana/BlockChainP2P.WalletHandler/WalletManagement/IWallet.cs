@@ -1,4 +1,4 @@
-﻿using BlockChainP2P.WalletHandler.KeyManagement;
+﻿using BlockChainP2P.P2PNetwork.Api.Lib.KeyGen;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,9 +11,9 @@ public interface IWallet
 {
     public string GetActivePublicAddress();
     public string GetActivePrivate();
-    public List<KeyPair> GetKeyPairs();
+    public List<KeyPairLib> GetKeyPairs();
     public List<string> GetPublicAddresses();
     public bool SetActiveKeyPair(int index);
-    public void RemoveKeyPair(KeyPair keyPair);
-    public void AddKeyPair(KeyPair keyPair);
+    public void RemoveKeyPair(KeyPairLib keyPair);
+    public void AddKeyPair(KeyPairLib keyPair);
 }

@@ -1,4 +1,5 @@
-﻿using NBitcoin.DataEncoders;
+﻿using BlockChainP2P.P2PNetwork.Api.Lib.KeyGen;
+using NBitcoin.DataEncoders;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -18,12 +19,12 @@ public class KeyStorage
         _encryptionKey = encryptionKey;
     }
 
-    public void StorePrivateKeys(List<KeyPair> keyPairs, string filePath)
+    public void StorePrivateKeys(List<KeyPairLib> keyPairs, string filePath)
     {
         var encryptedKeys = new List<string>();
         foreach (var keyPair in keyPairs)
         {
-            encryptedKeys.Add(EncryptPrivateKey(Encoders.Hex.EncodeData(keyPair.PrivateKey.ToBytes())));
+            encryptedKeys.Add(EncryptPrivateKey(keyPair.GetPrivateKeyHex()));
         }
         File.WriteAllText(filePath, JsonConvert.SerializeObject(encryptedKeys));
     }

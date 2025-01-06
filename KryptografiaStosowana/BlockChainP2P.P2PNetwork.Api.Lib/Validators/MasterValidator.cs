@@ -1,6 +1,6 @@
-﻿using BlockChainP2P.P2PNetwork.Api.Lib.Model;
-using BlockChainP2P.P2PNetwork.Api.Manager.BlockChain;
-using BlockChainP2P.P2PNetwork.Api.Manager.Transactions;
+﻿using BlockChainP2P.P2PNetwork.Api.Lib.Block;
+using BlockChainP2P.P2PNetwork.Api.Lib.Model;
+using BlockChainP2P.P2PNetwork.Api.Lib.Transactions;
 using NBitcoin;
 using NBitcoin.Crypto;
 using NBitcoin.DataEncoders;
@@ -14,7 +14,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 
-namespace BlockChainP2P.P2PNetwork.Api.Manager.Validators;
+namespace BlockChainP2P.P2PNetwork.Api.Lib.Validators;
 
 public static class MasterValidator
 {

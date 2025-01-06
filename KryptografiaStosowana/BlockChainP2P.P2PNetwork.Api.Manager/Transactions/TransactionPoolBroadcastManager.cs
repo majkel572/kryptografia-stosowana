@@ -1,7 +1,7 @@
 using System;
 using BlockChainP2P.P2PNetwork.Api.Lib.Model;
+using BlockChainP2P.P2PNetwork.Api.Lib.Validators;
 using BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
-using BlockChainP2P.P2PNetwork.Api.Manager.Validators;
 using BlockChainP2P.P2PNetwork.Api.Persistence.Interfaces;
 using Microsoft.AspNetCore.SignalR.Client;
 using Serilog;

@@ -1,4 +1,5 @@
-﻿using BlockChainP2P.WalletHandler.KeyManagement;
+﻿using BlockChainP2P.P2PNetwork.Api.Lib.KeyGen;
+using BlockChainP2P.WalletHandler.KeyManagement;
 using BlockChainP2P.WalletHandler.WalletManagement;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -156,7 +157,7 @@ namespace WalletDemo
                     byte[] privateKeyBytes = Encoders.Hex.DecodeData(privateKeyHex);
                     Key privkey = new Key(privateKeyBytes);
                     PubKey publicKey = privkey.PubKey;
-                    var keyPair = new BlockChainP2P.WalletHandler.KeyManagement.KeyPair(publicKey, privkey);
+                    var keyPair = new KeyPairLib(publicKey, privkey);
                     wallet.AddKeyPair(keyPair);
                 }
 

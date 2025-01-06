@@ -1,5 +1,5 @@
 ﻿using BlockChainP2P.P2PNetwork.Api.Lib.Model;
-using BlockChainP2P.P2PNetwork.Api.Manager.Validators;
+using BlockChainP2P.P2PNetwork.Api.Lib.Validators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlockChainP2P.P2PNetwork.Api.Manager.BlockChain;
+namespace BlockChainP2P.P2PNetwork.Api.Lib.Block;
 
 public static class BlockOperations
 {

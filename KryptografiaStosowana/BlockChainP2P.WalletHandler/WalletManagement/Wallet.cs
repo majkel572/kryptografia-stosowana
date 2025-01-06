@@ -1,5 +1,4 @@
 ﻿using BlockChainP2P.P2PNetwork.Api.Lib.Model;
-using BlockChainP2P.WalletHandler.KeyManagement;
 using NBitcoin;
 using Newtonsoft.Json;
 using System;
@@ -8,29 +7,30 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using BlockChainP2P.P2PNetwork.Api.Manager.Transactions;
+using BlockChainP2P.P2PNetwork.Api.Lib.KeyGen;
+using BlockChainP2P.P2PNetwork.Api.Lib.Transactions;
 
 namespace BlockChainP2P.WalletHandler.WalletManagement;
 
 public class Wallet : IWallet
 {
-    private readonly List<KeyManagement.KeyPair> _keyPairs;
-    private KeyManagement.KeyPair _activeKeyPair;
+    private readonly List<KeyPairLib> _keyPairs;
+    private KeyPairLib _activeKeyPair;
     private readonly object _lock = new object();
 
     public Wallet()
     {
-        _keyPairs = new List<KeyManagement.KeyPair>();
+        _keyPairs = new List<KeyPairLib>();
         var privateKey = new Key(); 
         var publicKey = privateKey.PubKey; 
 
-        var newKeyPair = new KeyManagement.KeyPair(publicKey, privateKey);
+        var newKeyPair = new KeyPairLib(publicKey, privateKey);
         _keyPairs.Add(newKeyPair);
 
         _activeKeyPair = newKeyPair;
     }
 
-    public void AddKeyPair(KeyManagement.KeyPair keyPair)
+    public void AddKeyPair(KeyPairLib keyPair)
     {
         lock (_lock)
         {
@@ -42,7 +42,7 @@ public class Wallet : IWallet
         }
     }
 
-    public void RemoveKeyPair(KeyManagement.KeyPair keyPair)
+    public void RemoveKeyPair(KeyPairLib keyPair)
     {
         lock (_lock)
         {
@@ -84,11 +84,11 @@ public class Wallet : IWallet
         }
     }
 
-    public List<KeyManagement.KeyPair> GetKeyPairs()
+    public List<KeyPairLib> GetKeyPairs()
     {
         lock (_lock)
         {
-            List<KeyManagement.KeyPair> privateAddresses = new List<KeyManagement.KeyPair>(_keyPairs);
+            List<KeyPairLib> privateAddresses = new List<KeyPairLib>(_keyPairs);
             return privateAddresses;
         }
     }
@@ -123,13 +123,13 @@ public class Wallet : IWallet
     /// <returns>
     /// Returns a signed transaction ready to be added to the blockchain
     /// </returns>
-    public static TransactionLib CreateTransaction(
+    public TransactionLib CreateTransaction(
         string receiverAddress,
         double amount,
-        string privateKey,
         List<UnspentTransactionOutput> unspentTxOuts)
     {
-        string myAddress = KeyGenerator.GetPublicKeyBTC(privateKey);
+        // if keys rotate here should be this rotation included also (maybe)
+        string myAddress = _activeKeyPair.GetPublicKeyHex(); /*KeyGenerator.GetPublicKeyBTC(privateKey);*/
         var myUnspentTxOuts = unspentTxOuts.Where(uTxO => uTxO.Address == myAddress).ToList();
 
         var result = TransactionProcessor.FindTxOutsForAmount(amount, myUnspentTxOuts);
@@ -152,7 +152,7 @@ public class Wallet : IWallet
 
         tx.TransactionInputs = tx.TransactionInputs.Select((txIn, index) =>
         {
-            txIn.Signature = TransactionProcessor.SignTransactionInput(tx, index, privateKey, unspentTxOuts);
+            txIn.Signature = TransactionProcessor.SignTransactionInput(tx, index, _activeKeyPair.GetPrivateKeyHex(), unspentTxOuts);
             return txIn;
         }).ToList();
 
