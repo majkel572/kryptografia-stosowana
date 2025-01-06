@@ -16,6 +16,7 @@ internal class PeerManager : IPeerManager
     private readonly IPeerData _peerData;
     private readonly IServiceProvider _serviceProvider;
     private IBlockChainManager? _blockChainManager;
+    private ITransactionPoolBroadcastManager? _transactionPoolManager;
 
     public PeerManager(
         IPeerData peerData,
@@ -34,6 +35,17 @@ internal class PeerManager : IPeerManager
                 _blockChainManager = _serviceProvider.GetRequiredService<IBlockChainManager>();
             }
             return _blockChainManager;
+        }
+    }
+    private ITransactionPoolBroadcastManager TransactionPoolManager
+    {
+        get
+        {
+            if (_transactionPoolManager == null)
+            {
+                _transactionPoolManager = _serviceProvider.GetRequiredService<ITransactionPoolBroadcastManager>();
+            }
+            return _transactionPoolManager;
         }
     }
 
@@ -103,6 +115,7 @@ internal class PeerManager : IPeerManager
             Log.Information($"Successfully connected to peer {connectionKey}");
 
             BlockChainManager.RequestAndUpdateBlockchainAsync(connection);
+            TransactionPoolManager.RequestAndUpdateTxPoolAsync(connection);
             return true;
         }
         catch (Exception ex)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 using BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
 using BlockChainP2P.P2PNetwork.Api.Persistence.Interfaces;
+using Serilog;
 
 namespace BlockChainP2P.P2PNetwork.Api.Hubs;
 
@@ -11,12 +12,16 @@ public class BlockchainHub : Hub
     private readonly IPeerData _peerData;
     private readonly IBlockChainManager _blockChainManager;
     private readonly IBlockChainData _blockChainData;
-    public BlockchainHub(IPeerManager peerManager, IBlockChainManager blockChainManager, IBlockChainData blockChainData, IPeerData peerData)
+    private readonly ITransactionPool _transactionPool;
+    private readonly ITransactionPoolBroadcastManager _transactionManager;
+    public BlockchainHub(IPeerManager peerManager, IBlockChainManager blockChainManager, IBlockChainData blockChainData, IPeerData peerData, ITransactionPool transactionPool, ITransactionPoolBroadcastManager transactionManager)
     {
         _peerManager = peerManager;
         _blockChainManager = blockChainManager;
         _blockChainData = blockChainData;
         _peerData = peerData;
+        _transactionPool = transactionPool;
+        _transactionManager = transactionManager;
     }
 
     public async Task RegisterPeer(PeerLib peer)
@@ -64,14 +69,26 @@ public class BlockchainHub : Hub
         await Clients.Caller.SendAsync("ReceiveBlockchain", blockchain);
     }
 
+    public async Task RequestTxPool()
+    {
+        var transactions = await _transactionPool.GetTransactions();
+        Log.Information($"liczba transakcji w oryginale: {transactions.Count}");
+        await Clients.Caller.SendAsync("ReceiveTxPool", transactions);
+    }
+
     public async Task ReceiveBlockchain(IEnumerable<BlockLib> blockchain)
     {
         _blockChainManager.ReplaceBlockChain(blockchain.ToList());
     }
 
+    public async Task ReceiveTxPool(IEnumerable<TransactionLib> transactions)
+    {
+        await _transactionManager.ReceiveTransactions(transactions.ToList());
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         await _peerManager.RemovePeerAsync(Context.ConnectionId);
-        await base.OnDisconnectedAsync(exception);
+        // await base.OnDisconnectedAsync(exception);
     }
 } 

@@ -28,6 +28,7 @@ internal class BlockChainManager : IBlockChainManager
     private readonly IPeerManager _peerManager;
     private readonly IWallet _wallet;
     private readonly IUnspentTransactionOutData _unspentTransactionOutData;
+    private readonly ITransactionPool _transactionPool;
 
     private static List<TransactionLib> GENESIS_TRANSACTION = new List<TransactionLib>(); // TODO: make genesis coinbase transaction
 
@@ -35,7 +36,8 @@ internal class BlockChainManager : IBlockChainManager
         IBlockChainData blockChainData,
         IPeerManager peerManager,
         IWallet wallet,
-        IUnspentTransactionOutData unspentTransactionOutData)
+        IUnspentTransactionOutData unspentTransactionOutData,
+        ITransactionPool transactionPool)
     {
         _blockChainData = blockChainData
             ?? throw new ArgumentNullException(nameof(blockChainData));
@@ -44,8 +46,8 @@ internal class BlockChainManager : IBlockChainManager
         _wallet = wallet
             ?? throw new ArgumentNullException(nameof(wallet));
         _unspentTransactionOutData = unspentTransactionOutData
-            ?? throw new ArgumentNullException(nameof(wallet));
-
+            ?? throw new ArgumentNullException(nameof(unspentTransactionOutData));
+        _transactionPool = transactionPool ?? throw new ArgumentNullException(nameof(transactionPool));
     }
 
     public async Task<BlockLib> GenerateNextBlockAsync(List<TransactionLib> blockData) // what if 2 threads create new block at the same time with same ids and one will write first?
@@ -77,11 +79,13 @@ internal class BlockChainManager : IBlockChainManager
         {
             throw new Exception("invalid amount");
         }
+        var transactionPool = await _transactionPool.GetTransactions();
+
         // ponizej zakladamy ze na komputerze na ktorym znajduje sie node jest rowniez wallet jakis ktory tutaj moznaby podpiac zeby mu zaplacic za wykopanie tego bloczku
         // nie ma w zasadzie mechanizmu na ten moment gdzie stwierdzamy jaki % transakcji stanowi fee dla minera, nalezaloby to uwzglednic w txouts niezuzytych po dokonaniu
         // transakcji tak aby txout nadawcy (czyli juz txin bo ma referencje) = txout odbiorcy + txout minera
         var coinbaseTx = TransactionProcessor.GetCoinbaseTransaction(_wallet.GetActivePublicAddress(), (await _blockChainData.GetHighestIndexBlockAsync()).Index + 1);
-        var tx = TransactionProcessor.CreateTransaction(receiverAddress, amount, _wallet.GetActivePrivate(), _unspentTransactionOutData.GetUnspentTxOut(), null); // TODO: pool, null is HACK
+        var tx = TransactionProcessor.CreateTransaction(receiverAddress, amount, _wallet.GetActivePrivate(), _unspentTransactionOutData.GetUnspentTxOut(), transactionPool); // TODO: pool, null is HACK
         var blockData = new List<TransactionLib> { coinbaseTx, tx };
         return await GenerateNextBlockAsync(blockData);
     }
@@ -137,7 +141,7 @@ internal class BlockChainManager : IBlockChainManager
         var currentBlockChain = await _blockChainData.GetBlockChainAsync();
         var genesisBlock = await _blockChainData.GetGenesisBlockAsync();
 
-        if (currentBlockChain.Count() == 0 || MasterValidator.ValidateBlockChain(newBlockChain, genesisBlock) && newBlockChain.Count > currentBlockChain.Count())
+        if (newBlockChain.Count > currentBlockChain.Count() && MasterValidator.ValidateBlockChain(newBlockChain, genesisBlock))
         {
             Log.Error("Received blockchain is valid. Replacing current blockchain with received blockchain.");
             _blockChainData.SwapBlockChainsAsync(newBlockChain);
@@ -160,9 +164,9 @@ internal class BlockChainManager : IBlockChainManager
         Log.Information("Creating genesis block");
         var genesisBlock = new BlockLib(
             index: 0,
-            hash: BlockOperations.CalculateHash(0, "previous hash", DateTime.Now, GENESIS_TRANSACTION, 1, 0),
+            hash: "0d6006614ae1b0cd572dec0e356131c060a289d14d273a4da9c119bdd8859374",
             previousHash: "previous hash",
-            timestamp: DateTime.Now,
+            timestamp: Convert.ToDateTime("2024-12-12T00:02:21.2383261+01:00"),
             data: GENESIS_TRANSACTION,
             difficulty: 2,
             nonce: 0
