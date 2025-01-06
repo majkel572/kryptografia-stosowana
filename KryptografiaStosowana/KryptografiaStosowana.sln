@@ -15,7 +15,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlockChainP2P.P2PNetwork.Ap
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlockChainP2P.P2PNetwork.Api.Lib", "BlockChainP2P.P2PNetwork.Api.Lib\BlockChainP2P.P2PNetwork.Api.Lib.csproj", "{0667C421-9DDE-4C9F-953B-26925981DA34}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalletDemo", "WalletDemo\WalletDemo.csproj", "{62EDA747-245C-4F9B-A121-8DD9EA7E0B27}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WalletDemo", "WalletDemo\WalletDemo.csproj", "{62EDA747-245C-4F9B-A121-8DD9EA7E0B27}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlockChainP2P.Wallet.Api", "BlockChainP2P.Wallet.Api\BlockChainP2P.Wallet.Api.csproj", "{8C027265-0333-4B30-A58A-85D31632C4FE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,10 @@ Global
 		{62EDA747-245C-4F9B-A121-8DD9EA7E0B27}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{62EDA747-245C-4F9B-A121-8DD9EA7E0B27}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{62EDA747-245C-4F9B-A121-8DD9EA7E0B27}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C027265-0333-4B30-A58A-85D31632C4FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C027265-0333-4B30-A58A-85D31632C4FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C027265-0333-4B30-A58A-85D31632C4FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C027265-0333-4B30-A58A-85D31632C4FE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

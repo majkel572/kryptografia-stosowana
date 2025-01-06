@@ -48,5 +48,12 @@ namespace BlockChainP2P.P2PNetwork.Api.Persistence
                     .ToList();
             }
         }
+
+        public double GetBalance(string address, List<UnspentTransactionOutput> unspentTxOuts)
+        {
+            return unspentTxOuts
+                .Where(x => x.Address == address)
+                .Sum(x => x.Amount);
+        }
     }
 }

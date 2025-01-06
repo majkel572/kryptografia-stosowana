@@ -122,13 +122,6 @@ public static class TransactionProcessor
         return signatureHex;
     }
 
-    public static double GetBalance(string address, List<UnspentTransactionOutput> unspentTxOuts)
-    {
-        return unspentTxOuts
-            .Where(x => x.Address == address)
-            .Sum(x => x.Amount);
-    }
-
     public static (List<UnspentTransactionOutput> IncludedUnspentTxOuts, double LeftOverAmount) FindTxOutsForAmount(
         double amount,
         List<UnspentTransactionOutput> walletUnspentTxOuts)

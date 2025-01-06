@@ -28,10 +28,10 @@ internal class BlockChainManager : IBlockChainManager
     private readonly IPeerManager _peerManager;
     private readonly IWallet _wallet;
     private readonly IUnspentTransactionOutData _unspentTransactionOutData;
-    private const string GENESIS_ADDRESS = "genesis-wallet-address"; 
+    private const string GENESIS_ADDRESS = "0259579f805a14cb86276c167d5e8fc737cd7d640e4850c3c94ec79337ee1c53e2"; 
     private const double GENESIS_AMOUNT = 50.0; 
 
-    private static List<TransactionLib> GENESIS_TRANSACTION => GetGenesisTransaction(); // TODO: make genesis coinbase transaction
+    private List<TransactionLib> GENESIS_TRANSACTION => GetGenesisTransaction();
 
     public BlockChainManager(
         IBlockChainData blockChainData,
@@ -186,17 +186,15 @@ internal class BlockChainManager : IBlockChainManager
 
     private List<TransactionLib> GetGenesisTransaction()
     {
-        // Create a single transaction output for the genesis address
         var transactionOutput = new TransactionOutputLib(
             address: GENESIS_ADDRESS,
             amount: GENESIS_AMOUNT
         );
 
-        // Create the genesis transaction
         var genesisTransaction = new TransactionLib
         {
-            Id = Guid.NewGuid().ToString(), // Unique transaction ID
-            TransactionInputs = new List<TransactionInputLib>(), // No inputs for the genesis transaction
+            Id = Guid.NewGuid().ToString(),
+            TransactionInputs = new List<TransactionInputLib>(),
             TransactionOutputs = new List<TransactionOutputLib> { transactionOutput }
         };
 
