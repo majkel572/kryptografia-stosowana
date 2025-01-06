@@ -145,14 +145,14 @@ public class Wallet : IWallet
         var tx = new TransactionLib
         {
             TransactionInputs = unsignedTxIns,
-            TransactionOutputs = CreateTxOuts(receiverAddress, myAddress, amount, leftOverAmount)
+            TransactionOutputs = TransactionProcessor.CreateTxOuts(receiverAddress, myAddress, amount, leftOverAmount)
         };
 
-        tx.Id = GetTransactionId(tx);
+        tx.Id = TransactionProcessor.GetTransactionId(tx);
 
         tx.TransactionInputs = tx.TransactionInputs.Select((txIn, index) =>
         {
-            txIn.Signature = SignTransactionInput(tx, index, privateKey, unspentTxOuts);
+            txIn.Signature = TransactionProcessor.SignTransactionInput(tx, index, privateKey, unspentTxOuts);
             return txIn;
         }).ToList();
 

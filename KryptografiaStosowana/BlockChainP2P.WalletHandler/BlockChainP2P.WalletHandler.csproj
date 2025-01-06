@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BlockChainP2P.P2PNetwork.Api.Lib\BlockChainP2P.P2PNetwork.Api.Lib.csproj" />
+    <ProjectReference Include="..\BlockChainP2P.P2PNetwork.Api.Manager\BlockChainP2P.P2PNetwork.Api.Manager.csproj" />
   </ItemGroup>
 
 </Project>
