@@ -207,4 +207,12 @@ internal class BlockChainManager : IBlockChainManager
 
         return new List<TransactionLib> { genesisTransaction };
     }
+
+    public async Task<List<UnspentTransactionOutput>> GetAvailableUnspentTxOuts()
+    {
+        var transactionPool = await _transactionPool.GetTransactions();
+        var unspentTransactionOuts = _unspentTransactionOutData.GetUnspentTxOut();
+        var filteredTxOuts = TransactionProcessor.FilterTxPoolTxs(unspentTransactionOuts, transactionPool);
+        return filteredTxOuts;
+    }
 }

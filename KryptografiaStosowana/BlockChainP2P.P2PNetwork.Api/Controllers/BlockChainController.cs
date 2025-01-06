@@ -36,6 +36,18 @@ public class BlockChainController : ControllerBase
         var result = await _blockChainData.GetBlockChainAsync();
         return Ok(result);
     }
+    
+    /// <summary>
+    /// Gets this node unspent transaction outs
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("GetAvailableTxOuts")]
+    [ProducesResponseType(typeof(List<UnspentTransactionOutput>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAvailableTxOuts()
+    {
+        var result = await _blockChainManager.GetAvailableUnspentTxOuts();
+        return Ok(result);
+    }
 
     /// <summary>
     /// Creates new block

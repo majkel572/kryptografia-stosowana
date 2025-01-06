@@ -107,4 +107,58 @@ public class Wallet : IWallet
             return _activeKeyPair?.GetPrivateKeyHex() ?? "No active key";
         }
     }
+
+
+    /// <summary>
+    /// Creates a new transaction to send a specified amount to a receiver's address. 
+    /// Selects unspent transaction outputs from the sender's address to cover the transaction amount 
+    /// and signs the inputs to ensure validity.
+    /// </summary>
+    /// <param name="receiverAddress">Address of the transaction recipient</param>
+    /// <param name="amount">Amount to send to the recipient</param>
+    /// <param name="privateKey">Private key of the sender, used for signing the transaction inputs</param>
+    /// <param name="unspentTxOuts">List of all available unspent transaction outputs</param>
+    /// <param name="txPool">Optional transaction pool storing not yet processed transactions</param>
+    /// <returns>
+    /// Returns a signed transaction ready to be added to the blockchain
+    /// </returns>
+    public static TransactionLib CreateTransaction(
+        string receiverAddress,
+        double amount,
+        string privateKey,
+        List<UnspentTransactionOutput> unspentTxOuts,
+        List<TransactionLib> txPool)
+    {
+        Console.WriteLine("txPool: " + JsonConvert.SerializeObject(txPool));
+        string myAddress = KeyGenerator.GetPublicKeyBTC(privateKey);
+        var myUnspentTxOuts = unspentTxOuts.Where(uTxO => uTxO.Address == myAddress).ToList();
+
+        myUnspentTxOuts = FilterTxPoolTxs(myUnspentTxOuts, txPool); // TODO: FilterTxPoolTxs
+
+        var result = FindTxOutsForAmount(amount, myUnspentTxOuts);
+        var includedUnspentTxOuts = result.IncludedUnspentTxOuts;
+        var leftOverAmount = result.LeftOverAmount;
+
+        var unsignedTxIns = includedUnspentTxOuts.Select(uTxO => new TransactionInputLib
+        {
+            TransactionOutputId = uTxO.TransactionOutputId,
+            TransactionOutputIndex = uTxO.TransactionOutputIndex
+        }).ToList();
+
+        var tx = new TransactionLib
+        {
+            TransactionInputs = unsignedTxIns,
+            TransactionOutputs = CreateTxOuts(receiverAddress, myAddress, amount, leftOverAmount)
+        };
+
+        tx.Id = GetTransactionId(tx);
+
+        tx.TransactionInputs = tx.TransactionInputs.Select((txIn, index) =>
+        {
+            txIn.Signature = SignTransactionInput(tx, index, privateKey, unspentTxOuts);
+            return txIn;
+        }).ToList();
+
+        return tx;
+    }
 }
