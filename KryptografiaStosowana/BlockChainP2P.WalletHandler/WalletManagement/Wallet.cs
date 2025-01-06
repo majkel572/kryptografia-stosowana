@@ -8,6 +8,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using BlockChainP2P.P2PNetwork.Api.Manager.Transactions;
 
 namespace BlockChainP2P.WalletHandler.WalletManagement;
 
@@ -126,16 +127,12 @@ public class Wallet : IWallet
         string receiverAddress,
         double amount,
         string privateKey,
-        List<UnspentTransactionOutput> unspentTxOuts,
-        List<TransactionLib> txPool)
+        List<UnspentTransactionOutput> unspentTxOuts)
     {
-        Console.WriteLine("txPool: " + JsonConvert.SerializeObject(txPool));
         string myAddress = KeyGenerator.GetPublicKeyBTC(privateKey);
         var myUnspentTxOuts = unspentTxOuts.Where(uTxO => uTxO.Address == myAddress).ToList();
 
-        myUnspentTxOuts = FilterTxPoolTxs(myUnspentTxOuts, txPool); // TODO: FilterTxPoolTxs
-
-        var result = FindTxOutsForAmount(amount, myUnspentTxOuts);
+        var result = TransactionProcessor.FindTxOutsForAmount(amount, myUnspentTxOuts);
         var includedUnspentTxOuts = result.IncludedUnspentTxOuts;
         var leftOverAmount = result.LeftOverAmount;
 

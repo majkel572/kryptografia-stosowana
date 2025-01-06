@@ -256,7 +256,7 @@ public static class TransactionProcessor
     }
 
     /// <summary>
-    /// Prevents double spending
+    /// Prevents double spending, filters out transaction outs from pool also
     /// </summary>
     /// <param name="unspentTxOuts">List of unspent txouts</param>
     /// <param name="transactionPool">List of existing transactions waiting to be mined</param>
