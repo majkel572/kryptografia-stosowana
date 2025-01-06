@@ -87,8 +87,8 @@ internal class BlockChainManager : IBlockChainManager
         // nie ma w zasadzie mechanizmu na ten moment gdzie stwierdzamy jaki % transakcji stanowi fee dla minera, nalezaloby to uwzglednic w txouts niezuzytych po dokonaniu
         // transakcji tak aby txout nadawcy (czyli juz txin bo ma referencje) = txout odbiorcy + txout minera
         var coinbaseTx = TransactionProcessor.GetCoinbaseTransaction(_wallet.GetActivePublicAddress(), (await _blockChainData.GetHighestIndexBlockAsync()).Index + 1);
-        var tx = TransactionProcessor.CreateTransaction(receiverAddress, amount, _wallet.GetActivePrivate(), _unspentTransactionOutData.GetUnspentTxOut(), transactionPool); // TODO: pool, null is HACK
-        var blockData = new List<TransactionLib> { coinbaseTx, tx };
+        var blockData = new List<TransactionLib> { coinbaseTx };
+        blockData.AddRange(transactionPool);
         return await GenerateNextBlockAsync(blockData);
     }
 
