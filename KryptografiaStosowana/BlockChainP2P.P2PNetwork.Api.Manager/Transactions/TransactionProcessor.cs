@@ -194,13 +194,13 @@ public static class TransactionProcessor
         double amount,
         string privateKey,
         List<UnspentTransactionOutput> unspentTxOuts,
-        List<TransactionLib>? txPool) // TODO: transaction pool
+        List<TransactionLib> txPool) // TODO: transaction pool
     {
         Console.WriteLine("txPool: " + JsonConvert.SerializeObject(txPool));
         string myAddress = KeyGenerator.GetPublicKeyBTC(privateKey);
         var myUnspentTxOuts = unspentTxOuts.Where(uTxO => uTxO.Address == myAddress).ToList();
 
-        //var myUnspentTxOuts = FilterTxPoolTxs(myUnspentTxOuts, txPool); // TODO: FilterTxPoolTxs
+        myUnspentTxOuts = FilterTxPoolTxs(myUnspentTxOuts, txPool); // TODO: FilterTxPoolTxs
 
         var result = FindTxOutsForAmount(amount, myUnspentTxOuts);
         var includedUnspentTxOuts = result.IncludedUnspentTxOuts;
@@ -227,5 +227,26 @@ public static class TransactionProcessor
         }).ToList();
 
         return tx;
+    }
+
+    public static List<UnspentTransactionOutput> FilterTxPoolTxs(List<UnspentTransactionOutput> unspentTxOuts, List<TransactionLib> transactionPool) {
+        var txIns = transactionPool
+        .SelectMany(tx => tx.TransactionInputs)
+        .ToList();
+
+        var removable = new List<UnspentTransactionOutput>();
+
+        foreach (var unspentTxOut in unspentTxOuts)
+        {
+            var txIn = txIns.FirstOrDefault(aTxIn =>
+                aTxIn.TransactionOutputIndex == unspentTxOut.TransactionOutputIndex && aTxIn.TransactionOutputId == unspentTxOut.TransactionOutputId);
+
+            if (txIn != null)
+            {
+                removable.Add(unspentTxOut);
+            }
+        }
+
+        return unspentTxOuts.Except(removable).ToList();
     }
 }

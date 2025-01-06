@@ -13,13 +13,16 @@ public class BlockChainController : ControllerBase
 {
     private readonly IBlockChainManager _blockChainManager;
     private readonly IBlockChainData _blockChainData;
+    private readonly ITransactionPoolBroadcastManager _transactionPoolBroadcastManager;
 
     public BlockChainController(
         IBlockChainManager blockChainManager,
-        IBlockChainData blockChainData)
+        IBlockChainData blockChainData,
+        ITransactionPoolBroadcastManager transactionPoolBroadcastManager)
     {
         _blockChainManager = blockChainManager;
         _blockChainData = blockChainData;
+        _transactionPoolBroadcastManager = transactionPoolBroadcastManager;
     }
 
     /// <summary>
@@ -57,6 +60,22 @@ public class BlockChainController : ControllerBase
     public async Task<IActionResult> CreateNextBlockWithTransaction([FromBody] TransactionRequest request)
     {
         var result = await _blockChainManager.GenerateNextBlockWithTransaction(request.Address, request.Amount);
+        return Ok(result);
+    }
+
+    [HttpPost("ReceiveTransaction")]
+    public async Task<IActionResult> ReceiveTransaction([FromBody] TransactionLib newTransaction)
+    {
+        
+        var result = await _transactionPoolBroadcastManager.ReceiveTransactions(new List<TransactionLib>() { newTransaction });
+        return Ok(result);
+    }
+
+    [HttpPost("ReceiveTransactions")]
+    public async Task<IActionResult> ReceiveTransactions([FromBody] List<TransactionLib> newTransactions)
+    {
+        
+        var result = await _transactionPoolBroadcastManager.ReceiveTransactions(newTransactions);
         return Ok(result);
     }
 }

@@ -28,6 +28,7 @@ internal class BlockChainManager : IBlockChainManager
     private readonly IPeerManager _peerManager;
     private readonly IWallet _wallet;
     private readonly IUnspentTransactionOutData _unspentTransactionOutData;
+    private readonly ITransactionPool _transactionPool;
 
     private static List<TransactionLib> GENESIS_TRANSACTION = new List<TransactionLib>(); // TODO: make genesis coinbase transaction
 
@@ -35,7 +36,8 @@ internal class BlockChainManager : IBlockChainManager
         IBlockChainData blockChainData,
         IPeerManager peerManager,
         IWallet wallet,
-        IUnspentTransactionOutData unspentTransactionOutData)
+        IUnspentTransactionOutData unspentTransactionOutData,
+        ITransactionPool transactionPool)
     {
         _blockChainData = blockChainData
             ?? throw new ArgumentNullException(nameof(blockChainData));
@@ -44,8 +46,8 @@ internal class BlockChainManager : IBlockChainManager
         _wallet = wallet
             ?? throw new ArgumentNullException(nameof(wallet));
         _unspentTransactionOutData = unspentTransactionOutData
-            ?? throw new ArgumentNullException(nameof(wallet));
-
+            ?? throw new ArgumentNullException(nameof(unspentTransactionOutData));
+        _transactionPool = transactionPool ?? throw new ArgumentNullException(nameof(transactionPool));
     }
 
     public async Task<BlockLib> GenerateNextBlockAsync(List<TransactionLib> blockData) // what if 2 threads create new block at the same time with same ids and one will write first?
@@ -77,9 +79,10 @@ internal class BlockChainManager : IBlockChainManager
         {
             throw new Exception("invalid amount");
         }
+        var transactionPool = await _transactionPool.GetTransactions();
 
         var coinbaseTx = TransactionProcessor.GetCoinbaseTransaction(_wallet.GetActivePublicAddress(), (await _blockChainData.GetHighestIndexBlockAsync()).Index + 1);
-        var tx = TransactionProcessor.CreateTransaction(receiverAddress, amount, _wallet.GetActivePrivate(), _unspentTransactionOutData.GetUnspentTxOut(), null); // TODO: pool, null is HACK
+        var tx = TransactionProcessor.CreateTransaction(receiverAddress, amount, _wallet.GetActivePrivate(), _unspentTransactionOutData.GetUnspentTxOut(), transactionPool); // TODO: pool, null is HACK
         var blockData = new List<TransactionLib> { coinbaseTx, tx };
         return await GenerateNextBlockAsync(blockData);
     }

@@ -7,6 +7,7 @@ namespace BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
 public interface ITransactionPoolBroadcastManager
 {
   Task RequestAndUpdateTxPoolAsync(HubConnection connection);
-  Task AddNewTxAsync(List<TransactionLib> transactions);
+  Task AddNewTxPoolAsync(List<TransactionLib> transactions);
   Task<List<TransactionLib>> GetAllTransactions();
+  Task<bool> ReceiveTransactions(List<TransactionLib> transactions);
 }

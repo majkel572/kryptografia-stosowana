@@ -38,4 +38,34 @@ internal class TransactionPool : ITransactionPool
             _transactions.Remove(transaction);
         }
     }
+
+    public void RemoveTransactionsFromMemPool(List<TransactionLib> transactions) {
+        lock (_transactionsLock) {
+            _transactions = _transactions.Except(transactions).ToList();
+        }
+    }
+
+    public async Task UpdateTransactionPool(List<UnspentTransactionOutput> unspentTxOuts)
+    {
+        var invalidTxs = new List<TransactionLib>();
+        var transactionPool = await GetTransactions();
+
+        foreach (var tx in transactionPool)
+        {
+            foreach (var txIn in tx.TransactionInputs)
+            {
+                if (unspentTxOuts.FirstOrDefault(uTxO => uTxO.TransactionOutputId == txIn.TransactionOutputId && uTxO.TransactionOutputIndex == txIn.TransactionOutputIndex) == null) 
+                {
+                    invalidTxs.Add(tx);
+                    break;
+                }
+            }
+        }
+
+        if (invalidTxs.Count > 0)
+        {
+            Console.WriteLine($"Removing {invalidTxs.Count} transactions from txPool");
+            RemoveTransactionsFromMemPool(invalidTxs);
+        }
+    }
 }

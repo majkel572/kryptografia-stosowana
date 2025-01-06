@@ -83,7 +83,7 @@ public class BlockchainHub : Hub
 
     public async Task ReceiveTxPool(IEnumerable<TransactionLib> transactions)
     {
-        await _transactionManager.AddNewTxAsync(transactions.ToList());
+        await _transactionManager.ReceiveTransactions(transactions.ToList());
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
