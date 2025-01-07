@@ -62,19 +62,6 @@ public class BlockChainController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Creates new block
-    /// </summary>
-    /// <param name="data">Data for the new block</param>
-    /// <returns></returns>
-    [HttpPost("MineTransaction")]
-    [ProducesResponseType(typeof(BlockLib), StatusCodes.Status201Created)]
-    public async Task<IActionResult> CreateNextBlockWithTransaction([FromBody] TransactionRequest request)
-    {
-        var result = await _blockChainManager.GenerateNextBlockWithTransaction(request.Address, request.Amount);
-        return Ok(result);
-    }
-
     [HttpPost("ReceiveTransaction")]
     public async Task<IActionResult> ReceiveTransaction([FromBody] TransactionLib newTransaction)
     {
