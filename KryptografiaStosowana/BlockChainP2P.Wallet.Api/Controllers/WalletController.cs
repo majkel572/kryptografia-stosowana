@@ -1,5 +1,7 @@
 using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 using BlockChainP2P.P2PNetwork.Api.Lib.Request;
+using BlockChainP2P.P2PNetwork.Api.Lib.Validators;
+using BlockChainP2P.WalletHandler.OpenAPI;
 using BlockChainP2P.WalletHandler.WalletManagement;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,11 +12,13 @@ namespace BlockChainP2P.Wallet.Api.Controllers;
 public class WalletController : ControllerBase
 {
     private readonly IWallet _wallet;
-
+    private readonly IP2PCaller _pcaller;
     public WalletController(
-        IWallet wallet)
+        IWallet wallet,
+        IP2PCaller pcaller)
     {
         _wallet = wallet;
+        _pcaller = pcaller;
     }
 
     /// <summary>
@@ -23,52 +27,56 @@ public class WalletController : ControllerBase
     /// <param name="address"></param>
     /// <returns></returns>
     [HttpGet("balance")]
-    [ProducesResponseType(typeof(double), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(double), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBalance()
     {
         var result = await _wallet.GetBalance();
         return Ok(result);
     }
 
-    // Endpoint to get the wallet's public address (or generate a new one)
-    [HttpGet("address")]
-    public IActionResult GetAddress()
+    /// <summary>
+    /// Set node address
+    /// </summary>
+    /// <param name="address"></param>
+    /// <returns></returns>
+    [HttpPost("callerAddress")]
+    public async Task<IActionResult> GetBalance(string address)
     {
-        try
-        {
-            var publicAddress = _wallet.GetPublicAddress();
-            return Ok(new { address = publicAddress });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        _pcaller.SetNodeAddress(address);
+        return Ok();
     }
 
-    // Endpoint to create a transaction
-    [HttpPost("transaction")]
+
+    /// <summary>
+    /// Gets wallet current public address
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("address")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAddress()
+    {
+        var publicAddress = _wallet.GetActivePublicAddress();
+        return Ok(publicAddress);
+    }
+
+    /// <summary>
+    /// Creates transaction and broadcasts it to the network
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost("createTransaction")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateTransaction([FromBody] TransactionRequest request)
     {
         try
         {
-            // Validate request data
-            if (request == null || string.IsNullOrWhiteSpace(request.RecipientAddress) || request.Amount <= 0)
+            if (request == null || !MasterValidator.IsValidAddress(request.Address) || request.Amount <= 0)
             {
                 return BadRequest(new { message = "Invalid transaction data" });
             }
 
-            // Create the transaction
-            var transaction = await _transactionService.CreateTransactionAsync(request.SenderPrivateKey, request.RecipientAddress, request.Amount);
+            var transaction = _wallet.CreateTransaction(request.Address, request.Amount);
 
-            if (transaction == null)
-            {
-                return BadRequest(new { message = "Transaction creation failed" });
-            }
-
-            // Broadcast the transaction (using your blockchain node or endpoint)
-            var result = await _transactionService.BroadcastTransactionAsync(transaction);
-
-            return Ok(new { message = "Transaction successfully created and broadcasted", transactionId = result });
+            return Ok(new { message = "Transaction successfully created and broadcasted", transactionId = transaction.Id });
         }
         catch (Exception ex)
         {
@@ -76,38 +84,6 @@ public class WalletController : ControllerBase
         }
     }
 
-    // Endpoint to get transaction details by transaction ID
-    [HttpGet("transaction/{transactionId}")]
-    public async Task<IActionResult> GetTransaction(string transactionId)
-    {
-        try
-        {
-            var transaction = await _transactionService.GetTransactionByIdAsync(transactionId);
-            if (transaction == null)
-            {
-                return NotFound(new { message = "Transaction not found" });
-            }
-
-            return Ok(transaction);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
-    // Endpoint to generate a new private-public key pair
-    [HttpPost("keys")]
-    public IActionResult GenerateNewKeyPair()
-    {
-        try
-        {
-            var keyPair = _wallet.GenerateNewKeyPair();
-            return Ok(new { publicKey = keyPair.PublicKey, privateKey = keyPair.PrivateKey });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
+    // Endpoint to get transaction details by transaction ID :TODO optional
+    // Endpoint to generate a new private-public key pair :TODO optional
 }

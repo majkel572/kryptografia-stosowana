@@ -17,9 +17,8 @@ public interface IWallet
     public bool SetActiveKeyPair(int index);
     public void RemoveKeyPair(KeyPairLib keyPair);
     public void AddKeyPair(KeyPairLib keyPair);
-    public TransactionLib CreateTransaction(
+    public Task<TransactionLib> CreateTransaction(
         string receiverAddress,
-        double amount,
-        List<UnspentTransactionOutput> unspentTxOuts);
+        double amount);
     Task<double> GetBalance();
 }

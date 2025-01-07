@@ -129,11 +129,12 @@ public class Wallet : IWallet
     /// <returns>
     /// Returns a signed transaction ready to be added to the blockchain
     /// </returns>
-    public TransactionLib CreateTransaction(
+    public async Task<TransactionLib> CreateTransaction(
         string receiverAddress,
-        double amount,
-        List<UnspentTransactionOutput> unspentTxOuts)
+        double amount)
     {
+        var unspentTxOuts = await _pcaller.GetAvailableTxOuts();
+
         // if keys rotate here should be this rotation included also (maybe)
         string myAddress = _activeKeyPair.GetPublicKeyHex(); /*KeyGenerator.GetPublicKeyBTC(privateKey);*/
         var myUnspentTxOuts = unspentTxOuts.Where(uTxO => uTxO.Address == myAddress).ToList();
@@ -161,6 +162,8 @@ public class Wallet : IWallet
             txIn.Signature = TransactionProcessor.SignTransactionInput(tx, index, _activeKeyPair.GetPrivateKeyHex(), unspentTxOuts);
             return txIn;
         }).ToList();
+
+        await _pcaller.PassTransactionToNode(tx);
 
         return tx;
     }

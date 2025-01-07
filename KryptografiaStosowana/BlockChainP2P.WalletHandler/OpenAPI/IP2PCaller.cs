@@ -11,4 +11,5 @@ public interface IP2PCaller
 {
     Task<bool> PassTransactionToNode(TransactionLib transactionToPass);
     Task<List<UnspentTransactionOutput>> GetAvailableTxOuts();
+    void SetNodeAddress(string address);
 }
