@@ -27,7 +27,9 @@ public class Wallet : IWallet
             ?? throw new ArgumentNullException(nameof(pcaller));
 
         _keyPairs = new List<KeyPairLib>();
-        var privateKey = new Key(); 
+
+        var privateKeyBytes = Convert.FromHexString("51de9696926f38d48f58ed6017b3e31faaa9bf3125453c6d1311aabace37c7f8");
+        var privateKey = new Key(privateKeyBytes);
         var publicKey = privateKey.PubKey; 
 
         var newKeyPair = new KeyPairLib(publicKey, privateKey);

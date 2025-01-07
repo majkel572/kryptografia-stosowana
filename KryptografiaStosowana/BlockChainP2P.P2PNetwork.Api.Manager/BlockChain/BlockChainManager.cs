@@ -222,12 +222,19 @@ internal class BlockChainManager : IBlockChainManager
             amount: GENESIS_AMOUNT
         );
 
+        var transactionOutput2 = new TransactionOutputLib(
+            address: "039b268ff353b04723a07ddc3cc25bea5a8eecb1cee551f2e6e994b6ab2c450a80",
+            amount: GENESIS_AMOUNT
+        );
+
         var genesisTransaction = new TransactionLib
         {
             Id = Guid.NewGuid().ToString(),
             TransactionInputs = new List<TransactionInputLib>(),
-            TransactionOutputs = new List<TransactionOutputLib> { transactionOutput }
+            TransactionOutputs = new List<TransactionOutputLib> { transactionOutput, transactionOutput2 }
         };
+
+        _unspentTransactionOutData.UpdateUnspentTransactionOutputs(new List<TransactionLib> { genesisTransaction });
 
         return new List<TransactionLib> { genesisTransaction };
     }
