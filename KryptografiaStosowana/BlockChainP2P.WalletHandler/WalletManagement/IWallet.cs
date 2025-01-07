@@ -1,4 +1,5 @@
 ﻿using BlockChainP2P.P2PNetwork.Api.Lib.KeyGen;
+using BlockChainP2P.P2PNetwork.Api.Lib.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,4 +17,9 @@ public interface IWallet
     public bool SetActiveKeyPair(int index);
     public void RemoveKeyPair(KeyPairLib keyPair);
     public void AddKeyPair(KeyPairLib keyPair);
+    public TransactionLib CreateTransaction(
+        string receiverAddress,
+        double amount,
+        List<UnspentTransactionOutput> unspentTxOuts);
+    Task<double> GetBalance();
 }

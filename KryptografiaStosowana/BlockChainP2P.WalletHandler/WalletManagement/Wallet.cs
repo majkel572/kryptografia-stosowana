@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BlockChainP2P.P2PNetwork.Api.Lib.KeyGen;
 using BlockChainP2P.P2PNetwork.Api.Lib.Transactions;
+using BlockChainP2P.WalletHandler.OpenAPI;
 
 namespace BlockChainP2P.WalletHandler.WalletManagement;
 
@@ -18,8 +19,13 @@ public class Wallet : IWallet
     private KeyPairLib _activeKeyPair;
     private readonly object _lock = new object();
 
-    public Wallet()
+    private readonly IP2PCaller _pcaller;
+
+    public Wallet(IP2PCaller pcaller)
     {
+        _pcaller = pcaller
+            ?? throw new ArgumentNullException(nameof(pcaller));
+
         _keyPairs = new List<KeyPairLib>();
         var privateKey = new Key(); 
         var publicKey = privateKey.PubKey; 
@@ -157,5 +163,12 @@ public class Wallet : IWallet
         }).ToList();
 
         return tx;
+    }
+
+    public async Task<double> GetBalance()
+    {
+        var unspentTxOuts = await _pcaller.GetAvailableTxOuts();
+        var balance = TransactionProcessor.GetBalance(_activeKeyPair.GetPublicKeyHex(), unspentTxOuts);
+        return balance;
     }
 }
