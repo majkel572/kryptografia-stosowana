@@ -59,6 +59,14 @@ public class WalletController : ControllerBase
         return Ok(publicAddress);
     }
 
+    [HttpPost("setKey")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SetKey(string privateKey) //example private Key: 51de9696926f38d48f58ed6017b3e31faaa9bf3125453c6d1311aabace37c7f8
+    {
+        var publicAddress = _wallet.SetKeyFromPrivateKey(privateKey);
+        return Ok(publicAddress);
+    }
+
     /// <summary>
     /// Creates transaction and broadcasts it to the network
     /// </summary>

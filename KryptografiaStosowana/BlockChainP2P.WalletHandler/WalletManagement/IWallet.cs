@@ -21,4 +21,5 @@ public interface IWallet
         string receiverAddress,
         double amount);
     Task<double> GetBalance();
+    string SetKeyFromPrivateKey(string privateKeyStr);
 }
