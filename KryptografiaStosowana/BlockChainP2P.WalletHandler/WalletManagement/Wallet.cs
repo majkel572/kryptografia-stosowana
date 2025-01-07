@@ -1,5 +1,5 @@
 ﻿using BlockChainP2P.P2PNetwork.Api.Lib.Model;
-using BlockChainP2P.WalletHandler.KeyManagement;
+using NBitcoin;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -7,21 +7,36 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using BlockChainP2P.P2PNetwork.Api.Lib.KeyGen;
+using BlockChainP2P.P2PNetwork.Api.Lib.Transactions;
+using BlockChainP2P.WalletHandler.OpenAPI;
 
 namespace BlockChainP2P.WalletHandler.WalletManagement;
 
 public class Wallet : IWallet
 {
-    private readonly List<KeyManagement.KeyPair> _keyPairs;
-    private KeyManagement.KeyPair _activeKeyPair;
+    private readonly List<KeyPairLib> _keyPairs;
+    private KeyPairLib _activeKeyPair;
     private readonly object _lock = new object();
 
-    public Wallet()
+    private readonly IP2PCaller _pcaller;
+
+    public Wallet(IP2PCaller pcaller)
     {
-        _keyPairs = new List<KeyManagement.KeyPair>();
+        _pcaller = pcaller
+            ?? throw new ArgumentNullException(nameof(pcaller));
+
+        _keyPairs = new List<KeyPairLib>();
+        var privateKey = new Key(); 
+        var publicKey = privateKey.PubKey; 
+
+        var newKeyPair = new KeyPairLib(publicKey, privateKey);
+        _keyPairs.Add(newKeyPair);
+
+        _activeKeyPair = newKeyPair;
     }
 
-    public void AddKeyPair(KeyManagement.KeyPair keyPair)
+    public void AddKeyPair(KeyPairLib keyPair)
     {
         lock (_lock)
         {
@@ -33,7 +48,7 @@ public class Wallet : IWallet
         }
     }
 
-    public void RemoveKeyPair(KeyManagement.KeyPair keyPair)
+    public void RemoveKeyPair(KeyPairLib keyPair)
     {
         lock (_lock)
         {
@@ -75,11 +90,11 @@ public class Wallet : IWallet
         }
     }
 
-    public List<KeyManagement.KeyPair> GetKeyPairs()
+    public List<KeyPairLib> GetKeyPairs()
     {
         lock (_lock)
         {
-            List<KeyManagement.KeyPair> privateAddresses = new List<KeyManagement.KeyPair>(_keyPairs);
+            List<KeyPairLib> privateAddresses = new List<KeyPairLib>(_keyPairs);
             return privateAddresses;
         }
     }
@@ -98,5 +113,65 @@ public class Wallet : IWallet
         {
             return _activeKeyPair?.GetPrivateKeyHex() ?? "No active key";
         }
+    }
+
+
+    /// <summary>
+    /// Creates a new transaction to send a specified amount to a receiver's address. 
+    /// Selects unspent transaction outputs from the sender's address to cover the transaction amount 
+    /// and signs the inputs to ensure validity.
+    /// </summary>
+    /// <param name="receiverAddress">Address of the transaction recipient</param>
+    /// <param name="amount">Amount to send to the recipient</param>
+    /// <param name="privateKey">Private key of the sender, used for signing the transaction inputs</param>
+    /// <param name="unspentTxOuts">List of all available unspent transaction outputs</param>
+    /// <param name="txPool">Optional transaction pool storing not yet processed transactions</param>
+    /// <returns>
+    /// Returns a signed transaction ready to be added to the blockchain
+    /// </returns>
+    public async Task<TransactionLib> CreateTransaction(
+        string receiverAddress,
+        double amount)
+    {
+        var unspentTxOuts = await _pcaller.GetAvailableTxOuts();
+
+        // if keys rotate here should be this rotation included also (maybe)
+        string myAddress = _activeKeyPair.GetPublicKeyHex(); /*KeyGenerator.GetPublicKeyBTC(privateKey);*/
+        var myUnspentTxOuts = unspentTxOuts.Where(uTxO => uTxO.Address == myAddress).ToList();
+
+        var result = TransactionProcessor.FindTxOutsForAmount(amount, myUnspentTxOuts);
+        var includedUnspentTxOuts = result.IncludedUnspentTxOuts;
+        var leftOverAmount = result.LeftOverAmount;
+
+        var unsignedTxIns = includedUnspentTxOuts.Select(uTxO => new TransactionInputLib
+        {
+            TransactionOutputId = uTxO.TransactionOutputId,
+            TransactionOutputIndex = uTxO.TransactionOutputIndex
+        }).ToList();
+
+        var tx = new TransactionLib
+        {
+            TransactionInputs = unsignedTxIns,
+            TransactionOutputs = TransactionProcessor.CreateTxOuts(receiverAddress, myAddress, amount, leftOverAmount)
+        };
+
+        tx.Id = TransactionProcessor.GetTransactionId(tx);
+
+        tx.TransactionInputs = tx.TransactionInputs.Select((txIn, index) =>
+        {
+            txIn.Signature = TransactionProcessor.SignTransactionInput(tx, index, _activeKeyPair.GetPrivateKeyHex(), unspentTxOuts);
+            return txIn;
+        }).ToList();
+
+        await _pcaller.PassTransactionToNode(tx);
+
+        return tx;
+    }
+
+    public async Task<double> GetBalance()
+    {
+        var unspentTxOuts = await _pcaller.GetAvailableTxOuts();
+        var balance = TransactionProcessor.GetBalance(_activeKeyPair.GetPublicKeyHex(), unspentTxOuts);
+        return balance;
     }
 }

@@ -1,4 +1,5 @@
-﻿using BlockChainP2P.WalletHandler.WalletManagement;
+﻿using BlockChainP2P.WalletHandler.OpenAPI;
+using BlockChainP2P.WalletHandler.WalletManagement;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,7 @@ public static class ServiceExtensions
     public static IServiceCollection AddWallet(this IServiceCollection services)
     {
         services.AddSingleton<IWallet, Wallet>();
+        services.AddSingleton<IP2PCaller, P2PCaller>();
         return services;
     }
 }

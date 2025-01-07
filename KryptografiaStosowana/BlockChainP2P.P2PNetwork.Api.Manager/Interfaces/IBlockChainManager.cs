@@ -17,4 +17,5 @@ public interface IBlockChainManager
     Task<bool> ReceiveNewBlockAsync(BlockLib newBlock);
     Task CreateGenesisBlockAsync();
     Task RequestAndUpdateBlockchainAsync(HubConnection connection);
+    Task<List<UnspentTransactionOutput>> GetAvailableUnspentTxOuts();
 }

@@ -1,7 +1,6 @@
-﻿using BlockChainP2P.P2PNetwork.Api.Lib.Model;
-using BlockChainP2P.P2PNetwork.Api.Manager.Interfaces;
-using BlockChainP2P.P2PNetwork.Api.Manager.Validators;
-using BlockChainP2P.WalletHandler.KeyManagement;
+﻿using BlockChainP2P.P2PNetwork.Api.Lib.KeyGen;
+using BlockChainP2P.P2PNetwork.Api.Lib.Model;
+using BlockChainP2P.P2PNetwork.Api.Lib.Validators;
 using NBitcoin;
 using NBitcoin.Crypto;
 using NBitcoin.DataEncoders;
@@ -15,7 +14,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 
-namespace BlockChainP2P.P2PNetwork.Api.Manager.Transactions;
+namespace BlockChainP2P.P2PNetwork.Api.Lib.Transactions;
 
 public static class TransactionProcessor
 {
@@ -48,6 +47,29 @@ public static class TransactionProcessor
     }
 
     /// <summary>
+    /// Validates a list of transactions within a block and updates the state of unspent transaction outputs.
+    /// </summary>
+    /// <param name="transactions">List of transactions to validate and process</param>
+    /// <param name="unspentTxOuts">Current list of unspent transaction outputs</param>
+    /// <param name="blockIndex">Index of block containing transactions</param>
+    /// <returns>List of unspent txouts</returns>
+    public static List<UnspentTransactionOutput> ProcessTransactions(List<TransactionLib> transactions, List<UnspentTransactionOutput> unspentTxOuts, int blockIndex)
+    {
+        if (!MasterValidator.IsValidTransactionsStructure(transactions))
+        {
+            return null;
+        }
+
+        if (!MasterValidator.ValidateBlockTransactions(transactions, unspentTxOuts, blockIndex))
+        {
+            Console.WriteLine("invalid block transactions");
+            return null;
+        }
+        return new();
+        //return UpdateUnspentTxOuts(transactions, unspentTxOuts);
+    }
+
+    /// <summary>
     /// Creates a coinbase transaction for the specified recipient address and block index.
     /// A coinbase transaction is the first transaction in a block, granting the mining reward to the specified address.
     /// </summary>
@@ -70,29 +92,6 @@ public static class TransactionProcessor
         tx.TransactionOutputs = new List<TransactionOutputLib> { new TransactionOutputLib(address, COINBASE_AMOUNT) };
         tx.Id = GetTransactionId(tx);
         return tx;
-    }
-
-    /// <summary>
-    /// Validates a list of transactions within a block and updates the state of unspent transaction outputs.
-    /// </summary>
-    /// <param name="transactions">List of transactions to validate and process</param>
-    /// <param name="unspentTxOuts">Current list of unspent transaction outputs</param>
-    /// <param name="blockIndex">Index of block containing transactions</param>
-    /// <returns>List of unspent txouts</returns>
-    public static List<UnspentTransactionOutput> ProcessTransactions(List<TransactionLib> transactions, List<UnspentTransactionOutput> unspentTxOuts, int blockIndex)
-    {
-        if (!MasterValidator.IsValidTransactionsStructure(transactions))
-        {
-            return null;
-        }
-
-        if (!MasterValidator.ValidateBlockTransactions(transactions, unspentTxOuts, blockIndex))
-        {
-            Console.WriteLine("invalid block transactions");
-            return null;
-        }
-        return new();
-        //return UpdateUnspentTxOuts(transactions, unspentTxOuts);
     }
 
     /// <summary>
@@ -256,59 +255,13 @@ public static class TransactionProcessor
     }
 
     /// <summary>
-    /// Creates a new transaction to send a specified amount to a receiver's address. 
-    /// Selects unspent transaction outputs from the sender's address to cover the transaction amount 
-    /// and signs the inputs to ensure validity.
+    /// Prevents double spending, filters out transaction outs from pool also
     /// </summary>
-    /// <param name="receiverAddress">Address of the transaction recipient</param>
-    /// <param name="amount">Amount to send to the recipient</param>
-    /// <param name="privateKey">Private key of the sender, used for signing the transaction inputs</param>
-    /// <param name="unspentTxOuts">List of all available unspent transaction outputs</param>
-    /// <param name="txPool">Optional transaction pool storing not yet processed transactions</param>
-    /// <returns>
-    /// Returns a signed transaction ready to be added to the blockchain
-    /// </returns>
-    public static TransactionLib CreateTransaction(
-        string receiverAddress,
-        double amount,
-        string privateKey,
-        List<UnspentTransactionOutput> unspentTxOuts,
-        List<TransactionLib> txPool) // TODO: transaction pool
+    /// <param name="unspentTxOuts">List of unspent txouts</param>
+    /// <param name="transactionPool">List of existing transactions waiting to be mined</param>
+    /// <returns></returns>
+    public static List<UnspentTransactionOutput> FilterTxPoolTxs(List<UnspentTransactionOutput> unspentTxOuts, List<TransactionLib> transactionPool)
     {
-        Console.WriteLine("txPool: " + JsonConvert.SerializeObject(txPool));
-        string myAddress = KeyGenerator.GetPublicKeyBTC(privateKey);
-        var myUnspentTxOuts = unspentTxOuts.Where(uTxO => uTxO.Address == myAddress).ToList();
-
-        myUnspentTxOuts = FilterTxPoolTxs(myUnspentTxOuts, txPool); // TODO: FilterTxPoolTxs
-
-        var result = FindTxOutsForAmount(amount, myUnspentTxOuts);
-        var includedUnspentTxOuts = result.IncludedUnspentTxOuts;
-        var leftOverAmount = result.LeftOverAmount;
-
-        var unsignedTxIns = includedUnspentTxOuts.Select(uTxO => new TransactionInputLib
-        {
-            TransactionOutputId = uTxO.TransactionOutputId,
-            TransactionOutputIndex = uTxO.TransactionOutputIndex
-        }).ToList();
-
-        var tx = new TransactionLib
-        {
-            TransactionInputs = unsignedTxIns,
-            TransactionOutputs = CreateTxOuts(receiverAddress, myAddress, amount, leftOverAmount)
-        };
-
-        tx.Id = GetTransactionId(tx);
-
-        tx.TransactionInputs = tx.TransactionInputs.Select((txIn, index) =>
-        {
-            txIn.Signature = SignTransactionInput(tx, index, privateKey, unspentTxOuts);
-            return txIn;
-        }).ToList();
-
-        return tx;
-    }
-
-    public static List<UnspentTransactionOutput> FilterTxPoolTxs(List<UnspentTransactionOutput> unspentTxOuts, List<TransactionLib> transactionPool) {
         var txIns = transactionPool
         .SelectMany(tx => tx.TransactionInputs)
         .ToList();

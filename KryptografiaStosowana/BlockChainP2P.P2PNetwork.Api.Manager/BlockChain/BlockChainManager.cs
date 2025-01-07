@@ -14,10 +14,12 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Runtime.CompilerServices;
 using System.Transactions;
-using BlockChainP2P.P2PNetwork.Api.Manager.Validators;
 using NBitcoin;
 using BlockChainP2P.P2PNetwork.Api.Manager.Transactions;
 using BlockChainP2P.WalletHandler.WalletManagement;
+using BlockChainP2P.P2PNetwork.Api.Lib.Transactions;
+using BlockChainP2P.P2PNetwork.Api.Lib.Validators;
+using BlockChainP2P.P2PNetwork.Api.Lib.Block;
 
 namespace BlockChainP2P.P2PNetwork.Api.Manager.BlockChain;
 
@@ -28,9 +30,11 @@ internal class BlockChainManager : IBlockChainManager
     private readonly IPeerManager _peerManager;
     private readonly IWallet _wallet;
     private readonly IUnspentTransactionOutData _unspentTransactionOutData;
+    private const string GENESIS_ADDRESS = "0259579f805a14cb86276c167d5e8fc737cd7d640e4850c3c94ec79337ee1c53e2"; 
+    private const double GENESIS_AMOUNT = 50.0; 
     private readonly ITransactionPool _transactionPool;
 
-    private static List<TransactionLib> GENESIS_TRANSACTION = new List<TransactionLib>(); // TODO: make genesis coinbase transaction
+    private List<TransactionLib> GENESIS_TRANSACTION => GetGenesisTransaction();
 
     public BlockChainManager(
         IBlockChainData blockChainData,
@@ -65,6 +69,7 @@ internal class BlockChainManager : IBlockChainManager
         }
 
         // Usunięcie wydanych outputów z niewydanych outputów i dodanie nowych niewydanych outputów z transakcji z tego bloku, musi być po wykopaniu i po walidacji transakcji i bloku
+        _unspentTransactionOutData.UpdateUnspentTransactionOutputs(blockData);
 
         return newBlock;
     }
@@ -85,8 +90,8 @@ internal class BlockChainManager : IBlockChainManager
         // nie ma w zasadzie mechanizmu na ten moment gdzie stwierdzamy jaki % transakcji stanowi fee dla minera, nalezaloby to uwzglednic w txouts niezuzytych po dokonaniu
         // transakcji tak aby txout nadawcy (czyli juz txin bo ma referencje) = txout odbiorcy + txout minera
         var coinbaseTx = TransactionProcessor.GetCoinbaseTransaction(_wallet.GetActivePublicAddress(), (await _blockChainData.GetHighestIndexBlockAsync()).Index + 1);
-        var tx = TransactionProcessor.CreateTransaction(receiverAddress, amount, _wallet.GetActivePrivate(), _unspentTransactionOutData.GetUnspentTxOut(), transactionPool); // TODO: pool, null is HACK
-        var blockData = new List<TransactionLib> { coinbaseTx, tx };
+        var blockData = new List<TransactionLib> { coinbaseTx };
+        blockData.AddRange(transactionPool);
         return await GenerateNextBlockAsync(blockData);
     }
 
@@ -186,5 +191,30 @@ internal class BlockChainManager : IBlockChainManager
 
         // await connection.StartAsync();
         await connection.InvokeAsync("RequestBlockchain");
+    }
+
+    private List<TransactionLib> GetGenesisTransaction()
+    {
+        var transactionOutput = new TransactionOutputLib(
+            address: GENESIS_ADDRESS,
+            amount: GENESIS_AMOUNT
+        );
+
+        var genesisTransaction = new TransactionLib
+        {
+            Id = Guid.NewGuid().ToString(),
+            TransactionInputs = new List<TransactionInputLib>(),
+            TransactionOutputs = new List<TransactionOutputLib> { transactionOutput }
+        };
+
+        return new List<TransactionLib> { genesisTransaction };
+    }
+
+    public async Task<List<UnspentTransactionOutput>> GetAvailableUnspentTxOuts()
+    {
+        var transactionPool = await _transactionPool.GetTransactions();
+        var unspentTransactionOuts = _unspentTransactionOutData.GetUnspentTxOut();
+        var filteredTxOuts = TransactionProcessor.FilterTxPoolTxs(unspentTransactionOuts, transactionPool);
+        return filteredTxOuts;
     }
 }
