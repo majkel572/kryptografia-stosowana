@@ -15,23 +15,6 @@ public static class BlockOperations
     private static readonly short DIFFICULTY_ADJUSTMENT_INTERVAL = 10; // blocks
 
     #region BlockMining
-    public static async Task<BlockLib> FindBlock(int index, string previousHash, DateTime timestamp, List<TransactionLib> data, int difficulty)
-    {
-        // var flag = singletonForLatestBlock.BlockValue;
-        int nonce = 0;
-        while (true)
-        {
-            string hash = CalculateHash(index, previousHash, timestamp, data, difficulty, nonce);
-            if (MasterValidator.HashMatchesDifficulty(hash, difficulty))
-            {
-                return new BlockLib(index, hash, previousHash, timestamp, data, difficulty, nonce); // remember to broadcast it
-            }
-            nonce++;
-            // var flag2 = singletonForLatestBlock.BlockValue;
-            // check czy flaga sie zmieniła
-        }
-    }
-
     public static string CalculateHash(int index, string previousHash, DateTime timestamp, List<TransactionLib> data, int difficulty, int nonce)
     {
         using (SHA256 sha256 = SHA256.Create())

@@ -51,7 +51,8 @@ internal class BlockChainManager : IBlockChainManager
             ?? throw new ArgumentNullException(nameof(wallet));
         _unspentTransactionOutData = unspentTransactionOutData
             ?? throw new ArgumentNullException(nameof(unspentTransactionOutData));
-        _transactionPool = transactionPool ?? throw new ArgumentNullException(nameof(transactionPool));
+        _transactionPool = transactionPool 
+            ?? throw new ArgumentNullException(nameof(transactionPool));
     }
 
     public async Task<BlockLib> GenerateNextBlockAsync(List<TransactionLib> blockData) // what if 2 threads create new block at the same time with same ids and one will write first?
@@ -60,7 +61,12 @@ internal class BlockChainManager : IBlockChainManager
         var blockChain = await _blockChainData.GetBlockChainAsync();
         var nextIndex = latestBlock.Index + 1;
         var nextTimestamp = DateTime.Now;
-        var newBlock = await BlockOperations.FindBlock(nextIndex, latestBlock.Hash, nextTimestamp, blockData, BlockOperations.GetDifficulty(blockChain, latestBlock));
+        var newBlock = await FindBlock(nextIndex, latestBlock.Hash, nextTimestamp, blockData, BlockOperations.GetDifficulty(blockChain, latestBlock));
+
+        if (newBlock == null)
+        {
+            return null;
+        }
 
         if (MasterValidator.ValidateNewBlock(newBlock, latestBlock))
         {
@@ -74,16 +80,32 @@ internal class BlockChainManager : IBlockChainManager
         return newBlock;
     }
 
-    public async Task<BlockLib> GenerateNextBlockWithTransaction(string receiverAddress, double amount)
+    public async Task<BlockLib> FindBlock(int index, string previousHash, DateTime timestamp, List<TransactionLib> data, int difficulty)
     {
-        if (!MasterValidator.IsValidAddress(receiverAddress))
+        var latestBlock = await _blockChainData.GetHighestIndexBlockAsync();
+        int nonce = 0;
+        while (true)
         {
-            throw new Exception("invalid address");
+            string hash = BlockOperations.CalculateHash(index, previousHash, timestamp, data, difficulty, nonce);
+            if (MasterValidator.HashMatchesDifficulty(hash, difficulty))
+            {
+                return new BlockLib(index, hash, previousHash, timestamp, data, difficulty, nonce); // remember to broadcast it
+            }
+            nonce++;
+
+            if (nonce % 20 == 0)
+            {
+                var newLatestBlock = await _blockChainData.GetHighestIndexBlockAsync();
+                if(newLatestBlock.Index != latestBlock.Index)
+                {
+                    return null; // block changed, stopped mining
+                }
+            }
         }
-        if (amount <= 0)
-        {
-            throw new Exception("invalid amount");
-        }
+    }
+
+    public async Task<BlockLib> GenerateNextBlockWithTransaction()
+    {
         var transactionPool = await _transactionPool.GetTransactions();
 
         // ponizej zakladamy ze na komputerze na ktorym znajduje sie node jest rowniez wallet jakis ktory tutaj moznaby podpiac zeby mu zaplacic za wykopanie tego bloczku
