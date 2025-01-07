@@ -19,7 +19,7 @@ public static class ServiceExtensions
         services.AddTransient<IPeerManager, PeerManager>();
         services.AddTransient<IBlockChainManager, BlockChainManager>();
         services.AddTransient<ITransactionPoolBroadcastManager, TransactionPoolBroadcastManager>();
-        services.AddSingleton<IMiner, Miner>();
+        services.AddHostedService<Miner>();
         return services;
     }
 }

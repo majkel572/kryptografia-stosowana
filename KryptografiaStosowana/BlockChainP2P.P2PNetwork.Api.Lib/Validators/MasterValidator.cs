@@ -109,7 +109,7 @@ public static class MasterValidator
     {
         return newBlock.Hash is string &&
                newBlock.PreviousHash is string &&
-               newBlock.Data is string;
+               newBlock.Data is List<TransactionLib>;
     }
 
     public static bool IsValidTimestamp(BlockLib newBlock, BlockLib previousBlock)

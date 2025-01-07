@@ -8,10 +8,10 @@ namespace BlockChainP2P.P2PNetwork.Api.Lib.Model;
 
 public class UnspentTransactionOutput
 {
-    public readonly string TransactionOutputId;
-    public readonly int TransactionOutputIndex;
-    public readonly string Address;
-    public readonly double Amount;
+    public string TransactionOutputId { get; }
+    public int TransactionOutputIndex { get; }
+    public string Address { get; }
+    public double Amount { get; }
 
     public UnspentTransactionOutput(
         string transactionOutputId,

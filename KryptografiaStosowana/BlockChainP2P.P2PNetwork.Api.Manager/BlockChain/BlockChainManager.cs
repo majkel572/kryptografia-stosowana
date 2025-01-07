@@ -76,6 +76,9 @@ internal class BlockChainManager : IBlockChainManager
 
         // Usunięcie wydanych outputów z niewydanych outputów i dodanie nowych niewydanych outputów z transakcji z tego bloku, musi być po wykopaniu i po walidacji transakcji i bloku
         _unspentTransactionOutData.UpdateUnspentTransactionOutputs(blockData);
+        var newUnspentTxOuts = _unspentTransactionOutData.GetUnspentTxOut();
+        await _transactionPool.UpdateTransactionPool(newUnspentTxOuts);
+
 
         return newBlock;
     }
