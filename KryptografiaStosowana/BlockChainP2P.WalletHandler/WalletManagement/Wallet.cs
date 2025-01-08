@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using BlockChainP2P.P2PNetwork.Api.Lib.KeyGen;
 using BlockChainP2P.P2PNetwork.Api.Lib.Transactions;
 using BlockChainP2P.WalletHandler.OpenAPI;
+using System.Security.Cryptography.X509Certificates;
 
 namespace BlockChainP2P.WalletHandler.WalletManagement;
 
@@ -127,6 +128,24 @@ public class Wallet : IWallet
         {
             return _activeKeyPair?.GetPrivateKeyHex() ?? "No active key";
         }
+    }
+
+    public void CreateNewKeyPair()
+    {
+        var keyPair = KeyGenerator.GenerateKeys();
+        AddKeyPair(keyPair);
+        Console.WriteLine("New key pair created and added to wallet.");
+    }
+
+    public List<String> ListPublicKeys()
+    {
+        var publicKeys = GetPublicAddresses();
+        var result = new List<String>();
+        for (int i = 0; i < publicKeys.Count; i++)
+        {
+            result.Add($"{i}: {publicKeys[i]}");
+        }
+        return result;
     }
 
 

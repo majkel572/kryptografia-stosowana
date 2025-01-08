@@ -22,4 +22,6 @@ public interface IWallet
         double amount);
     Task<double> GetBalance();
     string SetKeyFromPrivateKey(string privateKeyStr);
+    void CreateNewKeyPair();
+    List<String> ListPublicKeys();
 }
