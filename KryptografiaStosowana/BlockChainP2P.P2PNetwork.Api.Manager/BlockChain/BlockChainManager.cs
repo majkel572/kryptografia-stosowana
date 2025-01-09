@@ -171,10 +171,20 @@ internal class BlockChainManager : IBlockChainManager
         var currentBlockChain = await _blockChainData.GetBlockChainAsync();
         var genesisBlock = await _blockChainData.GetGenesisBlockAsync();
 
-        if (newBlockChain.Count > currentBlockChain.Count() && MasterValidator.ValidateBlockChain(newBlockChain, genesisBlock))
+        if (MasterValidator.ValidateBlockChain(newBlockChain, genesisBlock))
         {
-            Log.Error("Received blockchain is valid. Replacing current blockchain with received blockchain.");
-            _blockChainData.SwapBlockChainsAsync(newBlockChain);
+            // validate crosover point
+            int lastIndex;
+            bool isAlienAccepted;
+            MasterValidator.FindCrossoverAndCalculateLength(currentBlockChain.ToList(), newBlockChain, out lastIndex, out isAlienAccepted);
+            if(isAlienAccepted)
+            {
+                Log.Error("Received blockchain is valid. Replacing current blockchain with received blockchain.");
+                //DemountBlocks(lastIndex, currentBlockChain);
+                _blockChainData.SwapBlockChainsAsync(newBlockChain);
+                //mempool fetch call
+            }
+
             //BroadcastLatest();
         }
         else

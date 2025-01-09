@@ -62,9 +62,116 @@ public static class MasterValidator
 
         for (int i = 0; i < blockChain.Count; i++)
         {
-            if (ValidateNewBlock(blockChain[i], blockChain[i - 1]))
+            if (!ValidateNewBlock(blockChain[i], blockChain[i - 1]))
             {
                 return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static void FindCrossoverAndCalculateLength(
+        List<BlockLib> currentNodeBlockchain,
+        List<BlockLib> alienNodeBlockchain,
+        out int lastIndex,
+        out bool isAlienAccepted)
+    {
+        var localHeight = currentNodeBlockchain.Count;
+        var alienHeight = alienNodeBlockchain.Count;
+
+        if(localHeight > alienHeight)
+        {
+            isAlienAccepted = false;
+            lastIndex = -1;
+            return;
+        }
+
+        int lesserNumber = Math.Min(localHeight, alienHeight);
+
+        currentNodeBlockchain = currentNodeBlockchain.OrderBy(x => x.Index).ToList();
+        alienNodeBlockchain = alienNodeBlockchain.OrderBy(x => x.Index).ToList();
+
+        for (int i = lesserNumber; i >= 0; i--)
+        {
+            var local = currentNodeBlockchain.FirstOrDefault(x => x.Index == i);
+            var alien = alienNodeBlockchain.FirstOrDefault(y => y.Index == i);
+
+            if(!MatchBlocks(local, alien))
+            {
+                lastIndex = i;
+                isAlienAccepted = true;
+                return;
+            }
+        }
+
+        isAlienAccepted = true;
+        lastIndex = 0;
+        return;
+    }
+
+    public static bool MatchBlocks(BlockLib local, BlockLib alien)
+    {
+        if (local == null || alien == null)
+        {
+            return false;
+        }
+
+        if (local.Index != alien.Index ||
+            local.Hash != alien.Hash ||
+            local.PreviousHash != alien.PreviousHash ||
+            local.Timestamp != alien.Timestamp ||
+            local.Difficulty != alien.Difficulty ||
+            local.Nonce != alien.Nonce)
+        {
+            return false;
+        }
+
+        if (local.Data.Count != alien.Data.Count)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < local.Data.Count; i++)
+        {
+            var txn1 = local.Data[i];
+            var txn2 = alien.Data[i];
+
+            if (txn1.Id != txn2.Id)
+                return false;
+
+            if (txn1.TransactionInputs.Count != txn2.TransactionInputs.Count)
+            {
+                return false;
+            }
+
+            for (int j = 0; j < txn1.TransactionInputs.Count; j++)
+            {
+                var input1 = txn1.TransactionInputs[j];
+                var input2 = txn2.TransactionInputs[j];
+
+                if (input1.TransactionOutputId != input2.TransactionOutputId ||
+                    input1.TransactionOutputIndex != input2.TransactionOutputIndex ||
+                    input1.Signature != input2.Signature)
+                {
+                    return false;
+                }
+            }
+
+            if (txn1.TransactionOutputs.Count != txn2.TransactionOutputs.Count)
+            {
+                return false;
+            }
+
+            for (int j = 0; j < txn1.TransactionOutputs.Count; j++)
+            {
+                var output1 = txn1.TransactionOutputs[j];
+                var output2 = txn2.TransactionOutputs[j];
+
+                if (output1.Address != output2.Address || output1.Amount != output2.Amount)
+                {
+                    return false;
+                }
             }
         }
 
