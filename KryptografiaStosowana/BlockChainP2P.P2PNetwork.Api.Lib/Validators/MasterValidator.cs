@@ -59,16 +59,48 @@ public static class MasterValidator
             Log.Error("Oof alien genesis block is corrupted!");
             return false;
         }
+        var unspents = new List<UnspentTransactionOutput>();
 
         for (int i = 0; i < blockChain.Count; i++)
         {
-            if (!ValidateNewBlock(blockChain[i], blockChain[i - 1]))
+            if (blockChain.Count > 2 && !ValidateNewBlock(blockChain[i], blockChain[i - 1]))
             {
                 return false;
             }
+            // unspents = CheckUnspentTransactionOutputs(blockChain[i].Data, unspents);
+            if(!TransactionProcessor.ProcessTransactions(blockChain[i].Data, unspents, blockChain[i].Index)) 
+            {
+                return false;
+            }
+            unspents = CheckUnspentTransactionOutputs(blockChain[i].Data, unspents);
         }
 
         return true;
+    }
+
+    private static List<UnspentTransactionOutput> CheckUnspentTransactionOutputs(List<TransactionLib> newTransactions, List<UnspentTransactionOutput> currentUnspents)
+    {
+        // nowe transakcje na unspent outputy zamieniamy
+        var newUnspentTxOuts = newTransactions
+            .SelectMany(t => t.TransactionOutputs.Select((txOut, index) =>
+                new UnspentTransactionOutput(t.Id, index, txOut.Address, txOut.Amount)))
+            .ToList();
+
+        // zużyte unspenty wyciagamy
+        var consumedTxOuts = newTransactions
+            .SelectMany(t => t.TransactionInputs)
+            .Select(txIn => new UnspentTransactionOutput(txIn.TransactionOutputId, txIn.TransactionOutputIndex, string.Empty, 0))
+            .ToList();
+
+        // bierzemy unspenty zużyte, odejmujemy je od puli unspentów i dodajemy do nich nowe unspenty
+        currentUnspents = currentUnspents
+            .Where(uTxO => !consumedTxOuts.Any(consumed =>
+                consumed.TransactionOutputId == uTxO.TransactionOutputId &&
+                consumed.TransactionOutputIndex == uTxO.TransactionOutputIndex))
+            .Concat(newUnspentTxOuts)
+            .ToList();
+        
+        return currentUnspents;
     }
 
     public static void FindCrossoverAndCalculateLength(
@@ -257,7 +289,7 @@ public static class MasterValidator
 
     public static bool IsValidTransactionsStructure(List<TransactionLib> transactions)
     {
-        return transactions.All(IsValidTransactionStructure);
+        return transactions.Skip(1).All(IsValidTransactionStructure);
     }
 
     public static bool IsValidTransactionStructure(TransactionLib transaction)

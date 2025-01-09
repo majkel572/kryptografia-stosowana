@@ -62,13 +62,13 @@ internal class BlockChainManager : IBlockChainManager
         var nextIndex = latestBlock.Index + 1;
         var nextTimestamp = DateTime.Now;
         var newBlock = await FindBlock(nextIndex, latestBlock.Hash, nextTimestamp, blockData, BlockOperations.GetDifficulty(blockChain, latestBlock));
-
+        var unspents = _unspentTransactionOutData.GetUnspentTxOut();
         if (newBlock == null)
         {
             return null;
         }
 
-        if (MasterValidator.ValidateNewBlock(newBlock, latestBlock))
+        if (TransactionProcessor.ProcessTransactions(newBlock.Data, unspents, newBlock.Index) && MasterValidator.ValidateNewBlock(newBlock, latestBlock))
         {
             await _blockChainData.AddBlockToBlockChainAsync(newBlock);
             await BroadcastNewBlockAsync(newBlock);
@@ -130,6 +130,7 @@ internal class BlockChainManager : IBlockChainManager
     {
         Log.Information($"Otrzymano nowy blok o indeksie {newBlock.Index}");
         var latestBlock = await _blockChainData.GetHighestIndexBlockAsync();
+        var unspents = _unspentTransactionOutData.GetUnspentTxOut();
         // lock (_blockchainLock) {
         //     var latestBlock = _blockChainData.GetHighestIndexBlockAsync().GetAwaiter().GetResult();
         //     var validationResult = ValidateNewBlock(newBlock, latestBlock);
@@ -138,7 +139,7 @@ internal class BlockChainManager : IBlockChainManager
         // Sprawdź, czy otrzymany blok jest następny w kolejności
         if (newBlock.Index == latestBlock.Index + 1)
         {
-            if (MasterValidator.ValidateNewBlock(newBlock, latestBlock))
+            if (TransactionProcessor.ProcessTransactions(newBlock.Data, unspents, newBlock.Index) && MasterValidator.ValidateNewBlock(newBlock, latestBlock))
             {
                 await _blockChainData.AddBlockToBlockChainAsync(newBlock);
                 _unspentTransactionOutData.UpdateUnspentTransactionOutputs(newBlock.Data);
@@ -151,7 +152,6 @@ internal class BlockChainManager : IBlockChainManager
             else
             {
                 Log.Error($"Otrzymany blok {newBlock.Index} jest nieprawidłowy");
-                await RequestAndUpdateBlockchainAsync(connection);
                 return true;
             }
         }
@@ -253,15 +253,24 @@ internal class BlockChainManager : IBlockChainManager
 
         var transactionOutput2 = new TransactionOutputLib(
             address: "039b268ff353b04723a07ddc3cc25bea5a8eecb1cee551f2e6e994b6ab2c450a80",
-            amount: GENESIS_AMOUNT
+            amount: 25
         );
+
+        var txIn = new TransactionInputLib
+        {
+            Signature = "",
+            TransactionOutputId = "",
+            TransactionOutputIndex = 0
+        };
 
         var genesisTransaction = new TransactionLib
         {
-            Id = "24ab0457-b57d-4459-a0e6-a59f333142ff",
-            TransactionInputs = new List<TransactionInputLib>(),
-            TransactionOutputs = new List<TransactionOutputLib> { transactionOutput, transactionOutput2 }
+            Id = "",
+            TransactionInputs = new List<TransactionInputLib>{txIn},
+            TransactionOutputs = new List<TransactionOutputLib> { transactionOutput2 }
         };
+
+        genesisTransaction.Id = TransactionProcessor.GetTransactionId(genesisTransaction);
 
         _unspentTransactionOutData.UpdateUnspentTransactionOutputs(new List<TransactionLib> { genesisTransaction });
 

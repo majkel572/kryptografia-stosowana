@@ -53,20 +53,20 @@ public static class TransactionProcessor
     /// <param name="unspentTxOuts">Current list of unspent transaction outputs</param>
     /// <param name="blockIndex">Index of block containing transactions</param>
     /// <returns>List of unspent txouts</returns>
-    public static List<UnspentTransactionOutput> ProcessTransactions(List<TransactionLib> transactions, List<UnspentTransactionOutput> unspentTxOuts, int blockIndex)
+    public static bool ProcessTransactions(List<TransactionLib> transactions, List<UnspentTransactionOutput> unspentTxOuts, int blockIndex)
     {
         if (!MasterValidator.IsValidTransactionsStructure(transactions))
         {
-            return null;
+            return false;
         }
 
         if (!MasterValidator.ValidateBlockTransactions(transactions, unspentTxOuts, blockIndex))
         {
             Console.WriteLine("invalid block transactions");
-            return null;
+            return false;
         }
-        return new();
-        //return UpdateUnspentTxOuts(transactions, unspentTxOuts);
+        return true;
+        // return UpdateUnspentTxOuts(transactions, unspentTxOuts);
     }
 
     /// <summary>

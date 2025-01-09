@@ -77,4 +77,20 @@ public class BlockChainController : ControllerBase
         var result = await _transactionPoolBroadcastManager.ReceiveTransactions(newTransactions);
         return Ok(result);
     }
+
+    [HttpPost("EvilTransaction")]
+     public async Task<IActionResult> EvilTransaction([FromBody] TransactionLib evilTransaction)
+    {
+        
+        await _transactionPoolBroadcastManager.AddNewTxPoolAsync(new List<TransactionLib>() { evilTransaction });
+        return Ok();
+    }
+
+    [HttpPost("EvilBlockchain")]
+     public async Task<IActionResult> EvilBlockchain([FromBody] List<BlockLib> evilBlockchain)
+    {
+        
+        _blockChainData.SwapBlockChainsAsync(evilBlockchain);
+        return Ok();
+    }
 }

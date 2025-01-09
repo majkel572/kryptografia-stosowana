@@ -52,7 +52,6 @@ public class TransactionPoolBroadcastManager : ITransactionPoolBroadcastManager
   public async Task AddNewTxPoolAsync(List<TransactionLib> transactions) {
     if(transactions.Count > 0) {
       _transactionPool.AddTransactionsToMemPool(transactions);
-      await _peerManager.BroadcastToPeers("ReceiveTxPool",transactions);
     }
   }
 
