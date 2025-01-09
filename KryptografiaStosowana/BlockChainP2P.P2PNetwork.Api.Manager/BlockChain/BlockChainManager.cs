@@ -180,9 +180,22 @@ internal class BlockChainManager : IBlockChainManager
             if(isAlienAccepted)
             {
                 Log.Error("Received blockchain is valid. Replacing current blockchain with received blockchain.");
-                //DemountBlocks(lastIndex, currentBlockChain);
+                var demountedTransactions = DemountBlocks(lastIndex, currentBlockChain.ToList());
                 _blockChainData.SwapBlockChainsAsync(newBlockChain);
-                //mempool fetch call
+                _unspentTransactionOutData.ResetUnspentTransactionOutputs(newBlockChain);
+
+                var unspentTxouts = _unspentTransactionOutData.GetUnspentTxOut();
+                var txsToRemove = new List<TransactionLib>();
+                foreach(var tx in demountedTransactions)
+                {
+                    if(!MasterValidator.ValidateTransaction(tx, unspentTxouts))
+                    {
+                        txsToRemove.Add(tx);
+                    }
+                }
+                demountedTransactions.Except(txsToRemove);
+
+                _transactionPool.AddTransactionsToMemPool(demountedTransactions);
             }
 
             //BroadcastLatest();
@@ -250,6 +263,22 @@ internal class BlockChainManager : IBlockChainManager
         _unspentTransactionOutData.UpdateUnspentTransactionOutputs(new List<TransactionLib> { genesisTransaction });
 
         return new List<TransactionLib> { genesisTransaction };
+    }
+
+    private List<TransactionLib> DemountBlocks(int lastIndex, List<BlockLib> currentBlockChain)
+    {
+        currentBlockChain = currentBlockChain.OrderBy(x => x.Index).ToList();
+        var leftoverBlockchain = new List<BlockLib>();
+
+        foreach (var block in currentBlockChain)
+        {
+            if (block.Index > lastIndex)
+            {
+                leftoverBlockchain.Add(block);
+            }
+        }
+
+        return leftoverBlockchain.SelectMany(x => x.Data).ToList();
     }
 
     public async Task<List<UnspentTransactionOutput>> GetAvailableUnspentTxOuts()

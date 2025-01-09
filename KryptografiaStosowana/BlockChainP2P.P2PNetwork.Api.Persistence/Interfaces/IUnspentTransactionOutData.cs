@@ -12,4 +12,5 @@ public interface IUnspentTransactionOutData
     void UpdateUnspentTransactionOutputs(List<TransactionLib> newTransactions);
     List<UnspentTransactionOutput> GetUnspentTxOut();
     double GetBalance(string address, List<UnspentTransactionOutput> unspentTxOuts);
+    void ResetUnspentTransactionOutputs(List<BlockLib> blockchain);
 }

@@ -49,6 +49,20 @@ namespace BlockChainP2P.P2PNetwork.Api.Persistence
             }
         }
 
+        public void ResetUnspentTransactionOutputs(List<BlockLib> blockchain)
+        {
+            lock (_unspentTransactionOutputsLock)
+            {
+                _unspentTransactionOutputs = new();
+            }
+            var sortedBlockchain = blockchain.OrderBy(x => x.Index).ToList();
+
+            for(int i = 0; i < sortedBlockchain.Count; i++)
+            {
+                UpdateUnspentTransactionOutputs(sortedBlockchain[i].Data);
+            }
+        }
+
         public double GetBalance(string address, List<UnspentTransactionOutput> unspentTxOuts)
         {
             return unspentTxOuts
