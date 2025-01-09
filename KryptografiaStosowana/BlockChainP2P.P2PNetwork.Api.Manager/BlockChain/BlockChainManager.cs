@@ -141,6 +141,9 @@ internal class BlockChainManager : IBlockChainManager
             if (MasterValidator.ValidateNewBlock(newBlock, latestBlock))
             {
                 await _blockChainData.AddBlockToBlockChainAsync(newBlock);
+                _unspentTransactionOutData.UpdateUnspentTransactionOutputs(newBlock.Data);
+                var newUnspentTxOuts = _unspentTransactionOutData.GetUnspentTxOut();
+                await _transactionPool.UpdateTransactionPool(newUnspentTxOuts);
                 await BroadcastNewBlockAsync(newBlock);
                 Log.Information($"Otrzymano i dodano nowy prawidłowy blok o indeksie {newBlock.Index}");
                 return true;
@@ -255,7 +258,7 @@ internal class BlockChainManager : IBlockChainManager
 
         var genesisTransaction = new TransactionLib
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = "24ab0457-b57d-4459-a0e6-a59f333142ff",
             TransactionInputs = new List<TransactionInputLib>(),
             TransactionOutputs = new List<TransactionOutputLib> { transactionOutput, transactionOutput2 }
         };
