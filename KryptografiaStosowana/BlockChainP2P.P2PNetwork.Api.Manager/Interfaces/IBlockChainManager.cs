@@ -14,7 +14,7 @@ public interface IBlockChainManager
     Task<BlockLib> GenerateNextBlockWithTransaction();
     void ReplaceBlockChain(List<BlockLib> newBlockChain);
     Task BroadcastNewBlockAsync(BlockLib newBlock);
-    Task<bool> ReceiveNewBlockAsync(BlockLib newBlock);
+    Task<bool> ReceiveNewBlockAsync(BlockLib newBlock, HubConnection connection);
     Task CreateGenesisBlockAsync();
     Task RequestAndUpdateBlockchainAsync(HubConnection connection);
     Task<List<UnspentTransactionOutput>> GetAvailableUnspentTxOuts();

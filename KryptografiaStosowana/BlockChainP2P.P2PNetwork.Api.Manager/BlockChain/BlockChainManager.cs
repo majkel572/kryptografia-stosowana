@@ -126,7 +126,7 @@ internal class BlockChainManager : IBlockChainManager
         await _peerManager.BroadcastToPeers("ReceiveNewBlock", newBlock);
     }
 
-    public async Task<bool> ReceiveNewBlockAsync(BlockLib newBlock)
+    public async Task<bool> ReceiveNewBlockAsync(BlockLib newBlock, HubConnection connection)
     {
         Log.Information($"Otrzymano nowy blok o indeksie {newBlock.Index}");
         var latestBlock = await _blockChainData.GetHighestIndexBlockAsync();
@@ -148,6 +148,7 @@ internal class BlockChainManager : IBlockChainManager
             else
             {
                 Log.Error($"Otrzymany blok {newBlock.Index} jest nieprawidłowy");
+                await RequestAndUpdateBlockchainAsync(connection);
                 return true;
             }
         }
@@ -155,9 +156,8 @@ internal class BlockChainManager : IBlockChainManager
         else if (newBlock.Index > latestBlock.Index + 1)
         {
             Log.Information("Otrzymano blok z przyszłości - potrzebne zaktualizowanie łańcucha");
+            await RequestAndUpdateBlockchainAsync(connection);
             return false;
-            // await RequestAndUpdateBlockchainAsync();
-            // TODO: Zaimplementować żądanie brakujących bloków
         }
         else
         {

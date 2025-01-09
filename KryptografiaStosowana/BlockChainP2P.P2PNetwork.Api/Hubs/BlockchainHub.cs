@@ -52,15 +52,18 @@ public class BlockchainHub : Hub
     {
         var httpContext = Context.GetHttpContext();
         var clientIp = httpContext?.Connection?.RemoteIpAddress?.ToString();
-        
-        var result =await _blockChainManager.ReceiveNewBlockAsync(newBlock);
-        if (!result && clientIp != null) {
-            string connectionKey = $"{clientIp}:8080";
-            var connection = await _peerData.GetHubConnection(connectionKey);
-            if (connection != null) {
-                await _blockChainManager.RequestAndUpdateBlockchainAsync(connection);
-            }
-        }
+
+        string connectionKey = $"{clientIp}:8080";
+        var connection = await _peerData.GetHubConnection(connectionKey);
+
+        var result = await _blockChainManager.ReceiveNewBlockAsync(newBlock, connection);
+        //if (!result && clientIp != null) {
+        //    string connectionKey = $"{clientIp}:8080";
+        //    var connection = await _peerData.GetHubConnection(connectionKey);
+        //    if (connection != null) {
+        //        await _blockChainManager.RequestAndUpdateBlockchainAsync(connection);
+        //    }
+        //}
     }
 
     public async Task RequestBlockchain()
