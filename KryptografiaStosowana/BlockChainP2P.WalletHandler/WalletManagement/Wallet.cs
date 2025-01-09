@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using BlockChainP2P.P2PNetwork.Api.Lib.KeyGen;
 using BlockChainP2P.P2PNetwork.Api.Lib.Transactions;
 using BlockChainP2P.WalletHandler.OpenAPI;
+using System.Security.Cryptography.X509Certificates;
 
 namespace BlockChainP2P.WalletHandler.WalletManagement;
 
@@ -28,6 +29,8 @@ public class Wallet : IWallet
 
         _keyPairs = new List<KeyPairLib>();
         var privateKey = new Key(); 
+        // var privateKeyBytes = Convert.FromHexString("51de9696926f38d48f58ed6017b3e31faaa9bf3125453c6d1311aabace37c7f8");
+        // var privateKey = new Key(privateKeyBytes);
         var publicKey = privateKey.PubKey; 
 
         var newKeyPair = new KeyPairLib(publicKey, privateKey);
@@ -62,6 +65,18 @@ public class Wallet : IWallet
                 _activeKeyPair = null;
             }
         }
+    }
+
+    public string SetKeyFromPrivateKey(string privateKeyStr) {
+        var privateKeyBytes = Convert.FromHexString(privateKeyStr);
+        var privateKey = new Key(privateKeyBytes);
+        var publicKey = privateKey.PubKey; 
+
+        var newKeyPair = new KeyPairLib(publicKey, privateKey);
+
+        AddKeyPair(newKeyPair);
+        SetActiveKeyPair(_keyPairs.IndexOf(newKeyPair));
+        return publicKey.ToHex();
     }
 
     public bool SetActiveKeyPair(int index)
@@ -113,6 +128,24 @@ public class Wallet : IWallet
         {
             return _activeKeyPair?.GetPrivateKeyHex() ?? "No active key";
         }
+    }
+
+    public void CreateNewKeyPair()
+    {
+        var keyPair = KeyGenerator.GenerateKeys();
+        AddKeyPair(keyPair);
+        Console.WriteLine("New key pair created and added to wallet.");
+    }
+
+    public List<String> ListPublicKeys()
+    {
+        var publicKeys = GetPublicAddresses();
+        var result = new List<String>();
+        for (int i = 0; i < publicKeys.Count; i++)
+        {
+            result.Add($"{i}: {publicKeys[i]}");
+        }
+        return result;
     }
 
 

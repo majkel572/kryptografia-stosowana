@@ -59,6 +59,38 @@ public class WalletController : ControllerBase
         return Ok(publicAddress);
     }
 
+    [HttpPost("addKey")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AddKey(string privateKey) //example private Key: 51de9696926f38d48f58ed6017b3e31faaa9bf3125453c6d1311aabace37c7f8
+    {
+        var publicAddress = _wallet.SetKeyFromPrivateKey(privateKey);
+        return Ok(publicAddress);
+    }
+
+    [HttpPost("setActiveKey")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SetActiveKey(int index) //example private Key: 51de9696926f38d48f58ed6017b3e31faaa9bf3125453c6d1311aabace37c7f8
+    {
+        var result = _wallet.SetActiveKeyPair(index);
+        return Ok(result);
+    }
+
+    [HttpGet("generateNewKeys")]
+    public async Task<IActionResult> GenerateNewKeys() //example private Key: 51de9696926f38d48f58ed6017b3e31faaa9bf3125453c6d1311aabace37c7f8
+    {
+        _wallet.CreateNewKeyPair();
+        return Ok();
+    }
+
+    [HttpGet("listPublicKeys")]
+    [ProducesResponseType(typeof(List<String>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListPublicKeys() //example private Key: 51de9696926f38d48f58ed6017b3e31faaa9bf3125453c6d1311aabace37c7f8
+    {
+        var result = _wallet.ListPublicKeys();
+        return Ok(result);
+    }
+
+
     /// <summary>
     /// Creates transaction and broadcasts it to the network
     /// </summary>
