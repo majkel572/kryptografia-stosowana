@@ -14,5 +14,4 @@ public interface ITransactionPool
   void AddTransactionsToMemPool(List<TransactionLib> transactions);
   void RemoveTransactionFromMemPool(TransactionLib transaction);
   Task UpdateTransactionPool(List<UnspentTransactionOutput> unspentTxOuts);
-
 }

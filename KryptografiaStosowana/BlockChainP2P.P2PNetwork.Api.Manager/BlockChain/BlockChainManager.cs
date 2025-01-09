@@ -126,7 +126,7 @@ internal class BlockChainManager : IBlockChainManager
         await _peerManager.BroadcastToPeers("ReceiveNewBlock", newBlock);
     }
 
-    public async Task<bool> ReceiveNewBlockAsync(BlockLib newBlock)
+    public async Task<bool> ReceiveNewBlockAsync(BlockLib newBlock, HubConnection connection)
     {
         Log.Information($"Otrzymano nowy blok o indeksie {newBlock.Index}");
         var latestBlock = await _blockChainData.GetHighestIndexBlockAsync();
@@ -151,6 +151,7 @@ internal class BlockChainManager : IBlockChainManager
             else
             {
                 Log.Error($"Otrzymany blok {newBlock.Index} jest nieprawidłowy");
+                await RequestAndUpdateBlockchainAsync(connection);
                 return true;
             }
         }
@@ -158,9 +159,8 @@ internal class BlockChainManager : IBlockChainManager
         else if (newBlock.Index > latestBlock.Index + 1)
         {
             Log.Information("Otrzymano blok z przyszłości - potrzebne zaktualizowanie łańcucha");
+            await RequestAndUpdateBlockchainAsync(connection);
             return false;
-            // await RequestAndUpdateBlockchainAsync();
-            // TODO: Zaimplementować żądanie brakujących bloków
         }
         else
         {
@@ -174,10 +174,33 @@ internal class BlockChainManager : IBlockChainManager
         var currentBlockChain = await _blockChainData.GetBlockChainAsync();
         var genesisBlock = await _blockChainData.GetGenesisBlockAsync();
 
-        if (newBlockChain.Count > currentBlockChain.Count() && MasterValidator.ValidateBlockChain(newBlockChain, genesisBlock))
+        if (MasterValidator.ValidateBlockChain(newBlockChain, genesisBlock))
         {
-            Log.Error("Received blockchain is valid. Replacing current blockchain with received blockchain.");
-            _blockChainData.SwapBlockChainsAsync(newBlockChain);
+            // validate crosover point
+            int lastIndex;
+            bool isAlienAccepted;
+            MasterValidator.FindCrossoverAndCalculateLength(currentBlockChain.ToList(), newBlockChain, out lastIndex, out isAlienAccepted);
+            if(isAlienAccepted)
+            {
+                Log.Error("Received blockchain is valid. Replacing current blockchain with received blockchain.");
+                var demountedTransactions = DemountBlocks(lastIndex, currentBlockChain.ToList());
+                _blockChainData.SwapBlockChainsAsync(newBlockChain);
+                _unspentTransactionOutData.ResetUnspentTransactionOutputs(newBlockChain);
+
+                var unspentTxouts = _unspentTransactionOutData.GetUnspentTxOut();
+                var txsToRemove = new List<TransactionLib>();
+                foreach(var tx in demountedTransactions)
+                {
+                    if(!MasterValidator.ValidateTransaction(tx, unspentTxouts))
+                    {
+                        txsToRemove.Add(tx);
+                    }
+                }
+                demountedTransactions.Except(txsToRemove);
+
+                _transactionPool.AddTransactionsToMemPool(demountedTransactions);
+            }
+
             //BroadcastLatest();
         }
         else
@@ -243,6 +266,22 @@ internal class BlockChainManager : IBlockChainManager
         _unspentTransactionOutData.UpdateUnspentTransactionOutputs(new List<TransactionLib> { genesisTransaction });
 
         return new List<TransactionLib> { genesisTransaction };
+    }
+
+    private List<TransactionLib> DemountBlocks(int lastIndex, List<BlockLib> currentBlockChain)
+    {
+        currentBlockChain = currentBlockChain.OrderBy(x => x.Index).ToList();
+        var leftoverBlockchain = new List<BlockLib>();
+
+        foreach (var block in currentBlockChain)
+        {
+            if (block.Index > lastIndex)
+            {
+                leftoverBlockchain.Add(block);
+            }
+        }
+
+        return leftoverBlockchain.SelectMany(x => x.Data).ToList();
     }
 
     public async Task<List<UnspentTransactionOutput>> GetAvailableUnspentTxOuts()
