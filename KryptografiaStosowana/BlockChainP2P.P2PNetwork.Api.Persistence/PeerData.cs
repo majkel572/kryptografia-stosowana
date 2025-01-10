@@ -3,6 +3,7 @@ using BlockChainP2P.P2PNetwork.Api.Persistence.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Runtime.CompilerServices;
+using Serilog;
 
 namespace BlockChainP2P.P2PNetwork.Api.Persistence;
 
@@ -13,6 +14,7 @@ internal class PeerData : IPeerData
     private PeerLib _thisPeerInfo;
     private readonly object _knownPeersLock = new object();
     private readonly object _connectionsLock = new object();
+    private bool _isBroadcasting = true;
 
     public PeerData(IConfiguration config)
     {
@@ -33,6 +35,24 @@ internal class PeerData : IPeerData
     public async Task<Dictionary<string, HubConnection>> GetAllConnectionsAsync()
     {
         return _connections;
+    }
+
+    public bool IsBroadcasting()
+    {
+        return _isBroadcasting;
+    }
+
+    public void ChangeIsBrodcasting()
+    {
+        if (_isBroadcasting)
+        {
+            _isBroadcasting = false;
+        }
+        else
+        {
+            _isBroadcasting = true;
+        }
+        Log.Information($"is broadcasting is now {_isBroadcasting}");
     }
 
     public async Task<PeerLib> AddPeerToKnownPeersAsync(PeerLib peer) => await Task.FromResult(AddPeerToKnownPeers(peer));

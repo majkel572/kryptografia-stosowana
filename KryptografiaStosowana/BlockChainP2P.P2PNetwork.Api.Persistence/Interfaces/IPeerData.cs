@@ -19,4 +19,6 @@ public interface IPeerData
     Task<HubConnection?> GetHubConnection(string connectionKey);
     Task<bool> RemoveHubConnection(string connectionId);
     Task<HubConnection?> GetHubConnectionByConnectionId(string connectionId);
+    void ChangeIsBrodcasting();
+    bool IsBroadcasting();
 }

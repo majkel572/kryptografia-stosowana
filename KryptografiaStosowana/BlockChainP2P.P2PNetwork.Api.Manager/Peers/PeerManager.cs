@@ -145,6 +145,11 @@ internal class PeerManager : IPeerManager
 
     public async Task BroadcastToPeers<T>(string method, T data)
     {
+        if(!_peerData.IsBroadcasting())
+        {
+            Log.Information("broadcast is off, skipping");
+            return;
+        }
         var connections = await _peerData.GetAllConnectionsAsync();
         Log.Information($"Broadcasting {method} to {connections.Count} peers {string.Join(", ", connections.Keys)}");
         var tasks = new List<Task>();
